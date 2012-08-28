@@ -4,11 +4,6 @@ use warnings;
 use ExtUtils::MakeMaker;
 use version 0.77;
 
-# create README files dynamically from POD
-my $preop =
-    'perldoc -uT $(VERSION_FROM) | tee $(DISTVNAME)/README.pod > README.pod;' .
-    'pod2text README.pod | tee $(DISTVNAME)/README > README';
-
 WriteMakefile(
     NAME                => 'DistributedMake::base',
     AUTHOR              => q{Kiran V Garimella <kiran@well.ox.ac.uk>},
@@ -23,6 +18,6 @@ WriteMakefile(
         'File::Temp' => 0, 'File::Basename' => 0,
         'Term::ANSIColor' => 0,
     },
-    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', PREOP=>$preop,},
+    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'DistributedMake-base-*' },
 );

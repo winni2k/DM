@@ -1,5 +1,5 @@
 package DistributedMake::base;
-use version 0.77; our $VERSION = qv('0.0.7');
+use version 0.77; our $VERSION = qv('0.0.5');
 
 use 5.006;
 use strict;
@@ -10,10 +10,6 @@ use File::Basename;
 =head1 NAME
 
 DistributedMake::base - A perl module for running pipelines
-
-=head1 VERSION
-
-0.0.7
 
 =head1 SYNOPSIS
 
@@ -26,54 +22,84 @@ Never create rules that delete files. Delete files by hand instead. Chances are,
 
 =cut
 
+sub parseHostsString {
+    my ($hoststring) = @_;
+
+    if ( $hoststring !~ /\s+\+\s+/ ) {
+        return undef;
+    }
+
+    my @hostobjs = split( /\s+\+\s+/, $hoststring );
+
+    my @hosts;
+    foreach my $hostobj (@hostobjs) {
+        my ( $multiplier, $server ) = $hostobj =~ /(\d+)\*(\w+)/;
+        for ( my $i = 0 ; $i < $multiplier ; $i++ ) {
+            push( @hosts, $server );
+        }
+    }
+
+    return \@hosts;
+}
+
 sub new {
     my ( $class, %args ) = @_;
 
     my %self = (
-        # Make options
-        'dryRun'         => 1,  # show what will be run, but don't actually run anything
-        'numJobs'        => 1,  # maximum number of jobs to run, or "" for maximum concurrency permitted by dependencies
-                                # Applicable to queue and non-queue situations
-        'keepGoing'      => 0,
-        'alwaysMake'     => 0,
-        'debugging'      => 0,
-        'ignoreErrors'   => 0,
+
+        # Almost make options
+        'dryRun'       => 1,      # don't run anything, just dry run, duh
+        'numJobs'      => undef,  # "" means max as many jobs as possible
+                                  # Applicable to queue and non-queue situations
+        'keepGoing'    => 0,
+        'alwaysMake'   => 0,
+        'debugging'    => 0,
+        'ignoreErrors' => 0,
         'printDirectory' => 0,
-        'touch'          => 0,
-        'unlink'         => 1,  # 0 = don't clean tmp file
+
+        # Script options
+        'unlink'            => 1,       # 0 = don't clean tmp file
+        'passed_in_tmp_dir' => undef,
+        'hosts'             => ""
+        , # ugly hack to run in distribution across multiple hosts via passwordless ssh
 
         # Cluster engine options
-        'queue'       => undef,
-        'memLimit'    => 4, # in gigabytes
-        'rerunnable'  => 0,
-        'name'        => undef,
-        'projectName' => undef,
-        'outputFile'  => 'distributedmake.log',
-        'extra'       => '',
+        'queue'          => undef,
+        'cluster_engine' => undef,    # values allowed are 'sge' and 'lsf'
+        'outputFile' => 'distributedmake.log',
+        'rerunnable' => 0,
+        'memLimit'   => 2,                       # only half implemented in sge
 
-        # make options
-        'tmpdir' => '/tmp',
+        # LSF cluster engine specific options
+        'mailTo'             => 'crd-lsf@broad.mit.edu',
+        'wait'               => 1,
+        'migrationThreshold' => undef,
+        'extra'              => '',
+
+        # SGE cluster specific options
+        'project_share' => undef,
+
+        # make options?
         'target' => 'all',
-        'targets' => [],
 
         # other attributes...
         %args,
+
+        'targets'   => [],
+        'hostindex' => 0,
+
+        # Keep tmp qsub wrappers around until make is done
+        'tmp_files_to_unlink' => [],
+
     );
 
     $self{'makefile'} = new File::Temp(
-        TEMPLATE => "$self{'tmpdir'}/DistributedMake_XXXXXX",
+        TEMPLATE => "/tmp/DistributedMake_XXXXXX",
         SUFFIX   => ".makefile",
         UNLINK   => $self{'unlink'}
-    ),
-
-    chomp(my $sge_qmaster = qx(which sge_qmaster));
-    chomp(my $pbsdsh = qx(which pbsdsh));
-    chomp(my $bsub = qx(which bsub));
-
-    if (-e $sge_qmaster) { $self{'cluster'} = 'SGE'; }
-    elsif (-e $pbsdsh) { $self{'cluster'} = 'PBS'; }
-    elsif (-e $bsub) { $self{'cluster'} = 'LSF'; }
-    else { $self{'cluster'} = 'localhost'; }
+      ),
+      $self{'hostarray'} = parseHostsString( $self{'hosts'} );
+    $self{'projectName'} = basename( $self{'makefile'} );
 
     bless \%self, $class;
 
@@ -81,108 +107,203 @@ sub new {
 }
 
 sub addRule {
-    my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) = @_;
-    my @targets = ( ref($targetsref) eq 'ARRAY' ) ? @$targetsref : ($targetsref);
-    my @dependencies = ( ref($dependenciesref) eq 'ARRAY' ) ? @$dependenciesref : ($dependenciesref);
+    my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) =
+      @_;
+    my @targets =
+      ( ref($targetsref) eq 'ARRAY' ) ? @$targetsref : ($targetsref);
+    my @dependencies =
+      ( ref($dependenciesref) eq 'ARRAY' )
+      ? @$dependenciesref
+      : ($dependenciesref);
     my @cmds = ( ref($cmdsref) eq 'ARRAY' ) ? @$cmdsref : ($cmdsref);
 
-    my %bja = (
-        'cluster'            => $self->{'cluster'},
-        'queue'              => $self->{'queue'},
-        'memLimit'           => $self->{'memLimit'},
-        'rerunnable'         => $self->{'rerunnable'},
-        'name'               => $self->{'name'},
-        'projectName'        => $self->{'projectName'},
-        'outputFile'         => $self->{'outputFile'},
-        'extra'              => $self->{'extra'},
-        %batchjoboverrides,
-    );
+    my @prepcmds;
 
-    # Setup the pre-commands (things like pre-making directories that will hold log files and output files)
-    my @precmds;
-    my $logdir = dirname( $bja{'outputFile'} );
-    if ( !-e $logdir ) {
-        my $mklogdircmd = "\@test \"! -d $logdir\" && mkdir -p $logdir";
-        push( @precmds, $mklogdircmd );
-    }
-
-    foreach my $target (@targets) {
-        my $rootdir = dirname($target);
-
-        my $mkdircmd = "\@test \"! -d $rootdir\" && mkdir -p $rootdir";
-        push( @precmds, $mkdircmd );
-    }
-
-    # Setup the user's commands, taking care of imposing memory limits and adding in cluster prefix commands
-    for ( my $i = 0 ; $i <= $#cmds ; $i++ ) {
-        if ($cmds[$i] =~ /^java / && $cmds[$i] =~ / -jar / && $cmds[$i] !~ / -Xmx/ ) {
-            $cmds[$i] =~ s/^java /java -Xmx$bja{'memLimit'}g /;
-        }
-    }
-
-    if (!defined($bja{'name'})) {
-        my $firstcmd = $cmds[0];
-        my $name = "unknown";
-        if ($firstcmd =~ /java/ && $firstcmd =~ /-jar/) {
-            ($name) = $firstcmd =~ /-jar\s+(.+?)\s+/;
-        } else {
-            my @pieces = split(/\s+/, $firstcmd);
-            $name = $pieces[0];
-        }
-
-        $bja{'name'} = &basename($name);
-    }
-
-    my $memRequest = 1.5*$bja{'memLimit'};
     my $cmdprefix = "";
-    my $cmdpostfix = "";
+    if ( defined( $self->{'hostarray'} ) ) {
+        $cmdprefix = "ssh ${$self->{'hostarray'}}[$self->{'hostindex'}] ";
 
-    if (defined($bja{'queue'}) && $bja{'queue'} ne 'localhost') {
-        if ($bja{'cluster'} eq 'SGE') {
-            $cmdprefix  = "qsub -sync y -cwd -V -b yes -j y -l h_vmem=${memRequest}G -o $bja{'outputFile'} -N $bja{'name'}";
-            $cmdprefix .= (defined($bja{'projectName'})) ? " -P $bja{'projectName'}" : "";
-            $cmdprefix .= ($bja{'rerunnable'} == 1) ? " -r yes" : " -r no";
-            $cmdprefix .= (defined($bja{'queue'}) && $bja{'queue'} ne 'cluster') ? " -q $bja{'queue'}" : "";
-            $cmdprefix .= $bja{'extra'};
-        } elsif ($bja{'cluster'} eq 'PBS') {
-
-        } elsif ($bja{'cluster'} eq 'LSF') {
-            #$cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}";
+        $self->{'hostindex'}++;
+        if ( $self->{'hostindex'} == scalar( @{ $self->{'hostarray'} } ) - 1 ) {
+            $self->{'hostindex'} = 0;
         }
-    } else {
-        $cmdpostfix = "| tee -a $bja{'outputFile'}";
     }
+    elsif (
+        (
+               defined( $self->{'cluster_engine'} )
+            && $self->{'cluster_engine'} eq 'lsf'
+            && (
+                exists( $batchjoboverrides{'queue'} )
+                ? defined( $batchjoboverrides{'queue'} )
+                && $batchjoboverrides{'queue'} ne ''
+                : 1
+            )
+        )
+        || (   exists( $batchjoboverrides{'queue'} )
+            && defined( $batchjoboverrides{'queue'} )
+            && $batchjoboverrides{'queue'} ne '' )
+      )
+    {
+        my %bja = (
+            'queue'              => $self->{'queue'},
+            'memLimit'           => $self->{'memLimit'},
+            'projectName'        => $self->{'projectName'},
+            'outputFile'         => $self->{'outputFile'},
+            'mailTo'             => $self->{'mailTo'},
+            'wait'               => $self->{'wait'},
+            'rerunnable'         => $self->{'rerunnable'},
+            'migrationThreshold' => $self->{'migrationThreshold'},
+            'extra'              => $self->{'extra'},
+            'addToProjectName'   => q//,
+            %batchjoboverrides,
+        );
 
-    my @modcmds;
-
-    foreach my $cmd (@cmds) {
-        my $modcmd = $cmd;
-        $modcmd =~ s/ '/ "'/g;
-        $modcmd =~ s/' /'" /g;
+        $bja{'projectName'} .= $bja{'addToProjectName'};
         
-        push(@modcmds, "$cmdprefix   $modcmd   $cmdpostfix");
+        my $rerunnable = $bja{'rerunnable'} ? "-r" : "";
+        my $migrationThreshold =
+          $bja{'rerunnable'} && defined( $bja{'migrationThreshold'} )
+          ? "-mig $bja{'migrationThreshold'}"
+          : "";
+        my $wait = $bja{'wait'} ? "-K" : "";
+
+        my $logdir = dirname( $bja{'outputFile'} );
+        if ( !-e $logdir ) {
+            my $mklogdircmd = "\@test \"! -d $logdir\" && mkdir -p $logdir";
+            push( @prepcmds, $mklogdircmd );
+        }
+
+        my $memRequest        = $bja{'memLimit'} * 1.5;
+        my $integerMemRequest = int($memRequest);
+        my $memCutoff         = $bja{'memLimit'} * 1024 * 1024 * 1.25;
+
+# A quick check to make sure that java commands being dispatched to the farm are instructed to run under a default memory limit
+        for ( my $i = 0 ; $i <= $#cmds ; $i++ ) {
+            if (   $cmds[$i] =~ /^java /
+                && $cmds[$i] =~ / -jar /
+                && $cmds[$i] !~ / -Xmx/ )
+            {
+                $cmds[$i] =~ s/^java /java -Xmx$bja{'memLimit'}g /;
+            }
+        }
+
+        $cmdprefix =
+"bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}    ";
+    }
+    elsif (
+        (
+               defined( $self->{'cluster_engine'} )
+            && $self->{'cluster_engine'} eq 'sge'
+            && (
+                exists( $batchjoboverrides{'queue'} )
+                ? defined( $batchjoboverrides{'queue'} )
+                && $batchjoboverrides{'queue'} ne ''
+                : 1
+            )
+        )
+        || (   exists( $batchjoboverrides{'queue'} )
+            && defined( $batchjoboverrides{'queue'} )
+            && $batchjoboverrides{'queue'} ne '' )
+      )
+    {
+        my %bja = (
+            'queue'       => $self->{'queue'},
+            'outputFile'  => $self->{'outputFile'},
+            'projectName' => $self->{'projectName'},                  # optional
+            'rerunnable'  => $self->{'rerunnable'} eq 0 ? 'n' : 'y',
+            'memLimit' => $self->{'memLimit'},    # not currently implemented
+            'project_share' => $self->{project_share},    # becomes -P option
+            extra           => $self->{'extra'},
+            'addToProjectName'   => q//,
+            %batchjoboverrides,
+        );
+
+        $bja{'projectName'} .= $bja{'addToProjectName'};
+
+        my $logdir = dirname( $bja{'outputFile'} );
+        if ( !-e $logdir ) {
+            my $mklogdircmd = "\@test \"! -d $logdir\" && mkdir -p $logdir";
+            push( @prepcmds, $mklogdircmd );
+        }
+
+        my $memRequest        = $bja{'memLimit'} * 1.5;
+        my $integerMemRequest = int($memRequest);
+        my $memCutoff         = $bja{'memLimit'} * 1024 * 1024 * 1.25;
+
+# A quick check to make sure that java commands being dispatched to the farm are instructed to run under a default memory limit
+        for ( my $i = 0 ; $i <= $#cmds ; $i++ ) {
+            if (   $cmds[$i] =~ /^java /
+                && $cmds[$i] =~ / -jar /
+                && $cmds[$i] !~ / -Xmx/ )
+            {
+                $cmds[$i] =~ s/^java /java -Xmx$bja{'memLimit'}g /;
+            }
+        }
+
+        $cmdprefix = "qsub -V -q $bja{'queue'} -o $bja{'outputFile'} "
+          . "-r $bja{'rerunnable'} -j y -sync y $bja{'extra'}";
+        $cmdprefix .= " -N $bja{'projectName'}" if defined $bja{'projectName'};
+        $cmdprefix .= " -P $bja{'project_share'}"
+          if defined $bja{'project_share'};
+        $cmdprefix .= q/    /;
     }
 
-    # Setup the post-commands (touching output files to make sure the timestamps don't get screwed up by clock skew between cluster nodes).
-    my @postcmds;
-    foreach my $target (@targets) {
-        push(@postcmds, "\@touch -c $target");
+    my $rootdir = dirname( $targets[0] );
+    if ( !-e $rootdir ) {
+        my $mkdircmd = "\@test \"! -d $rootdir\" && mkdir -p $rootdir";
+        push( @prepcmds, $mkdircmd );
     }
 
-    # Emit the makefile commands
-    print { $self->{'makefile'} } "$targets[0]: " . join( " ", @dependencies )
-      . "\n\t" . join( "\n\t", @precmds )
-      . "\n\t" . join( "\n\t", @modcmds )
-      . "\n\t" . join( "\n\t", @postcmds )
-      . "\n\n";
+# We have to touch the final file just in case the time between different nodes on the farm are not synchronized.
+    print { $self->{'makefile'} } "$targets[0]: "
+      . join( " ",    @dependencies ) . "\n\t"
+      . join( "\n\t", @prepcmds );
 
+    # add the rest of the makefile. in most cases:
+    unless ( defined( $self->{'cluster_engine'} )
+        && $self->{'cluster_engine'} eq 'sge' )
+    {
+        print { $self->{'makefile'} } "\n\t$cmdprefix"
+          . join( "\n\t$cmdprefix", @cmds );
+    }
+
+    # in the case of sge, we'll need to create wrapper scripts
+    else {
+        my $tmp_dir;
+        if ( defined $self->{passed_in_tmp_dir} ) {
+            $tmp_dir = $self->{passed_in_tmp_dir};
+        }
+        else {
+            $tmp_dir =
+              tempdir( TEMPLATE => 'qsub_commands_XXXXXX', CLEANUP => 1 );
+        }
+        my @cmdfiles;
+        foreach my $cmd (@cmds) {
+            my $rand_num = 0;
+            while ( -e "$tmp_dir/qsub_command_$rand_num" ) {
+                $rand_num = rand();
+            }
+            my $tmp_file = "$tmp_dir/qsub_command_$rand_num";
+            open( my $tmp_fh, '>', "$tmp_file" );
+            print $tmp_fh "#!$ENV{SHELL}\n$cmd\n";
+            close($tmp_fh);
+            push @cmdfiles, $tmp_file;
+
+            # Keep tmp qsub wrappers around until make is done
+            push @{ $self->{tmp_files_to_unlink} }, $tmp_dir;
+        }
+        print { $self->{'makefile'} } "\n\t$cmdprefix"
+          . join( "\n\t$cmdprefix", @cmdfiles );
+    }
+    print { $self->{'makefile'} } "\n\ttouch -c $targets[0]\n\n\n";
     push( @{ $self->{'targets'} }, $targets[0] );
 }
 
 sub execute {
     my ( $self, %overrides ) = @_;
 
-    print { $self->{'makefile'} } "all: " . join( " ", @{ $self->{'targets'} } ) . "\n\n";
+    print { $self->{'makefile'} } "all: "
+      . join( " ", @{ $self->{'targets'} } ) . "\n\n";
     print { $self->{'makefile'} } ".DELETE_ON_ERROR:\n";
 
     my %makeargs = (
@@ -193,13 +314,21 @@ sub execute {
         'debugging'      => $self->{'debugging'},
         'ignoreErrors'   => $self->{'ignoreErrors'},
         'printDirectory' => $self->{'printDirectory'},
-        'touch'          => $self->{'touch'},
         'target'         => $self->{'target'},
-        'touchFiles'         => $self->{'touchFiles'},
         %overrides,
     );
 
     my $numjobs = $makeargs{'numJobs'};
+    if ( !defined($numjobs) ) {
+        if ( defined( $self->{'hostarray'} )
+            && scalar( $self->{'hostarray'} ) > 0 )
+        {
+            $numjobs = scalar( @{ $self->{'hostarray'} } );
+        }
+        else {
+            $numjobs = 1;
+        }
+    }
 
     my $makecmd = "make"
       . ( $makeargs{'dryRun'}         ? " -n" : "" )
@@ -207,10 +336,15 @@ sub execute {
       . ( $makeargs{'alwaysMake'}     ? " -B" : "" )
       . ( $makeargs{'ignoreErrors'}   ? " -i" : "" )
       . ( $makeargs{'printDirectory'} ? " -w" : "" )
-      . ( $makeargs{'touch'}          ? " -t" : "" )
-      . ( $makeargs{'debugging'} =~ /[abvijm]+/ ? " --debug=$makeargs{'debugging'}" : "")
-      . ( $makeargs{'debugging'} =~ /\d+/ && $makeargs{'debugging'} == 1 ? " -d" : "" )
-      . " -j $numjobs" . " -f " . $self->{'makefile'}->filename
+      . (
+        $makeargs{'debugging'} =~ /[abvijm]+/
+        ? " --debug=$makeargs{'debugging'}"
+        : ""
+      )
+      . (    $makeargs{'debugging'} =~ /\d+/
+          && $makeargs{'debugging'} == 1 ? " -d" : "" )
+      . " -j $numjobs" . " -f "
+      . $self->{'makefile'}->filename
       . " $makeargs{'target'}";
 
     print "$makecmd\n";
