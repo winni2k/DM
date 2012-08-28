@@ -1,0 +1,57 @@
+NAME
+    DistributedMake::base - A perl module for running pipelines
+
+VERSION
+    0.0.7
+
+SYNOPSIS
+    todo
+
+GOOD PRACTICE
+    Never make a directory a dependency. make creates directories as it
+    needs them. Never create rules that delete files. Delete files by hand
+    instead. Chances are, You'll be sorry otherwise.
+
+AUTHOR
+    Kiran V Garimella, "<kiran at well.ox.ac.uk>"
+
+BUGS
+    Please report any bugs or feature requests to "bug-distributedmake-base
+    at rt.cpan.org", or through the web interface at
+    <http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DistributedMake-base>. I
+    will be notified, and then you'll automatically be notified of progress
+    on your bug as I make changes.
+
+SUPPORT
+    You can find documentation for this module with the perldoc command.
+
+        perldoc DistributedMake::base
+
+    You can also look for information at:
+
+    *   RT: CPAN's request tracker (report bugs here)
+
+        <http://rt.cpan.org/NoAuth/Bugs.html?Dist=DistributedMake-base>
+
+    *   AnnoCPAN: Annotated CPAN documentation
+
+        <http://annocpan.org/dist/DistributedMake-base>
+
+    *   CPAN Ratings
+
+        <http://cpanratings.perl.org/d/DistributedMake-base>
+
+    *   Search CPAN
+
+        <http://search.cpan.org/dist/DistributedMake-base/>
+
+ACKNOWLEDGEMENTS
+LICENSE AND COPYRIGHT
+    Copyright 2012 Kiran V Garimella.
+
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of either: the GNU General Public License as published
+    by the Free Software Foundation; or the Artistic License.
+
+    See http://dev.perl.org/licenses/ for more information.
+
