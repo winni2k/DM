@@ -155,12 +155,16 @@ sub addRule {
 
     my @modcmds;
 
-    foreach my $cmd (@cmds) {
-        my $modcmd = $cmd;
-        $modcmd =~ s/ '/ "'/g;
-        $modcmd =~ s/' /'" /g;
+    # protect single quotes if running on SGE
+    # perhaps this could be an issue with one-liners using double quotes? -- winni
+    if( $self->{cluster} eq q/SGE/){
+        foreach my $cmd (@cmds) {
+            my $modcmd = $cmd;
+            $modcmd =~ s/ '/ "'/g;
+            $modcmd =~ s/' /'" /g;
         
-        push(@modcmds, "$cmdprefix   $modcmd   $cmdpostfix");
+            push(@modcmds, "$cmdprefix   $modcmd   $cmdpostfix");
+        }
     }
 
     # Setup the post-commands (touching output files to make sure the timestamps don't get screwed up by clock skew between cluster nodes).
