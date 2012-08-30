@@ -160,8 +160,8 @@ sub addRule {
     if( $self->{cluster} eq q/SGE/){
         foreach my $cmd (@cmds) {
             my $modcmd = $cmd;
-            $modcmd =~ s/ '/ "'/g;
-            $modcmd =~ s/' /'" /g;
+            $modcmd =~ s/'/"'/g;
+            $modcmd =~ s/'/'"/g;
         
             push(@modcmds, "$cmdprefix   $modcmd   $cmdpostfix");
         }
