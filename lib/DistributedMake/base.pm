@@ -189,7 +189,7 @@ sub addRule {
         }
         # protect $ signs from make by turning them into $$
         if ( $self->{cluster} eq q/localhost/ ) {
-            $modcmd =~ s/\$/$$/g;
+            $modcmd =~ s/\$/\$\$/g;
         }
 
         push( @modcmds, "$cmdprefix   $modcmd   $cmdpostfix" );
