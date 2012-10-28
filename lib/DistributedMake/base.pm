@@ -21,8 +21,9 @@ todo
 
 =head1 GOOD PRACTICE
 
-Never make a directory a dependency. make creates directories as it needs them.
-Never create rules that delete files. Delete files by hand instead. Chances are, You'll be sorry otherwise.
+- Never make a directory a dependency. make creates directories as it needs them.
+- Never create rules that delete files. Delete files by hand instead. Chances are, You'll be sorry otherwise.
+- make runs in dryRun mode by default (this is for your own safety!).  Pass in 'dryRun => 0' to new() to run.
 
 =cut
 
