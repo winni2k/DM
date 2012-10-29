@@ -69,9 +69,9 @@ sub new {
         UNLINK   => $self{'unlink'}
     );
 
-    chomp( my $sge_qmaster = qx(which sge_qmaster) );
-    chomp( my $pbsdsh      = qx(which pbsdsh) );
-    chomp( my $bsub        = qx(which bsub) );
+    chomp( my $sge_qmaster = qx(which sge_qmaster 2>/dev/null) );
+    chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
+    chomp( my $bsub        = qx(which bsub 2>/dev/null) );
 
     if    ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
 #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
