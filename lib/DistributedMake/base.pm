@@ -1,5 +1,5 @@
 package DistributedMake::base;
-use version 0.77; our $VERSION = qv('0.0.8');
+use version 0.77; our $VERSION = qv('0.0.9');
 
 use 5.006;
 use strict;
@@ -13,7 +13,7 @@ DistributedMake::base - A perl module for running pipelines
 
 =head1 VERSION
 
-0.0.8
+0.0.9
 
 =head1 SYNOPSIS
 
@@ -67,14 +67,14 @@ sub new {
         TEMPLATE => "$self{'tmpdir'}/DistributedMake_XXXXXX",
         SUFFIX   => ".makefile",
         UNLINK   => $self{'unlink'}
-      ),
+    );
 
-      chomp( my $sge_qmaster = qx(which sge_qmaster) );
-    chomp( my $pbsdsh = qx(which pbsdsh) );
-    chomp( my $bsub   = qx(which bsub) );
+    chomp( my $sge_qmaster = qx(which sge_qmaster) );
+    chomp( my $pbsdsh      = qx(which pbsdsh) );
+    chomp( my $bsub        = qx(which bsub) );
 
     if    ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
-    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; }
+#    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
     elsif ( -e $bsub )        { $self{'cluster'} = 'LSF'; }
     else                      { $self{'cluster'} = 'localhost'; }
 
@@ -188,6 +188,7 @@ sub addRule {
             $modcmd =~ s/'/"'/g;
             $modcmd =~ s/'/'"/g;
         }
+
         # protect $ signs from make by turning them into $$
         if ( $self->{cluster} eq q/localhost/ ) {
             $modcmd =~ s/\$/\$\$/g;
