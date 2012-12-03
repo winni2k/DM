@@ -138,8 +138,8 @@ sub addRule {
             ($name) = $firstcmd =~ /-jar\s+(.+?)\s+/;
         }
         else {
-            my @pieces = split( /\s+/, $firstcmd );
-            $name = $pieces[0];
+            $firstcmd =~ m/([A-Za-z0-9\.\_\-]+)/;
+            $name = $1;
         }
 
         $bja{'name'} = &basename($name);
