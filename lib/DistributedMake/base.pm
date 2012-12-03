@@ -187,6 +187,7 @@ sub addRule {
         if ( $self->{cluster} eq q/SGE/ ) {
             $modcmd =~ s/'/"'/g;
             $modcmd =~ s/'/'"/g;
+            $modcmd =~ s/\$/\$\$/g;
         }
 
         # protect $ signs from make by turning them into $$
