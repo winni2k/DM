@@ -13,7 +13,7 @@ DistributedMake::base - A perl module for running pipelines
 
 =head1 VERSION
 
-0.0.9
+0.1.001
 
 =head1 SYNOPSIS
 
