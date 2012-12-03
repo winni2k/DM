@@ -11,7 +11,7 @@ my $target1 = init_testfile( $test_dir . '/target1' );
 
 my $target1_expected = "$test_dir/target1.expected";
 my $dm = DistributedMake::base->new( dryRun => 0 );
-$dm->addRule( $target1, "", 'echo "hello world" > ' . $target1 );
+$dm->addRule( $target1, "", 'echo "hello world" > ' . $target1, queue=>'localhost' );
 $dm->execute();
 
 ok( compare( $target1, $target1_expected ) == 0, "Hello world got written" );
@@ -23,7 +23,7 @@ my $target2_expected = "$target2.expected";
 my $target2_command  = q/perl -e '$L = "hello world 2\n"; print $L'>/.$target2;
 
 $dm = DistributedMake::base->new( dryRun => 0 );
-$dm->addRule( $target2, "", $target2_command );
+$dm->addRule( $target2, "", $target2_command , queue=>'localhost');
 $dm->execute();
 
 ok( compare( $target2, $target2_expected ) == 0, "Hello world got written 2" );
