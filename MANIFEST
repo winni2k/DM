@@ -14,3 +14,4 @@ examples/AlignLane.pl
 t/10-dollar_sign_conversion.t
 t/10-dollar_sign_conversion.tmp/target1.expected
 t/10-dollar_sign_conversion.tmp/target2.expected
+scripts/sge_job_array.pl
