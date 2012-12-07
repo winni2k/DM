@@ -21,8 +21,8 @@ todo
 
 =head1 GOOD PRACTICE
 
-- Never make a directory a dependency. make creates directories as it needs them.
-- Never create rules that delete files. Delete files by hand instead. Chances are, You'll be sorry otherwise.
+- Never make a directory a dependency. DistributedMake creates directories as it needs them.
+- Never create rules that delete files. Delete files by hand instead. Chances are, Youwill be sorry otherwise.
 - make runs in dryRun mode by default (this is for your own safety!).  Pass in 'dryRun => 0' to new() to run.
 
 =cut
@@ -59,6 +59,12 @@ sub new {
         'target'  => 'all',
         'targets' => [],
 
+        # job array related information
+        'jobArrayOpen' => 0,    # has a job array been started but not ended?
+        'jobArrayTargetFiles'  => {},
+        'jobArrayPrereqFiles'  => {},
+        'jobArrayCommandFiles' => {},
+
         # other attributes...
         %args,
     );
@@ -73,10 +79,11 @@ sub new {
     chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
     chomp( my $bsub        = qx(which bsub 2>/dev/null) );
 
-    if    ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
-#    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
-    elsif ( -e $bsub )        { $self{'cluster'} = 'LSF'; }
-    else                      { $self{'cluster'} = 'localhost'; }
+    if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
+
+  #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
+    elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
+    else               { $self{'cluster'} = 'localhost'; }
 
     bless \%self, $class;
 
@@ -214,6 +221,12 @@ sub addRule {
     push( @{ $self->{'targets'} }, $targets[0] );
 }
 
+=head2 execute()
+
+This method is called after all rules have been defined in order to write the make file and execute it.  No mandatory options. Takes only overrides.
+
+=cut
+
 sub execute {
     my ( $self, %overrides ) = @_;
 
@@ -258,6 +271,90 @@ sub execute {
     print "$makecmd\n";
     system($makecmd);
     print "$makecmd\n";
+}
+
+=head1 Job Arrays
+
+=head2 Workflow
+
+First, initialize a job array with startJobArray().  Add rules to the job array with addJobArrayRule().  Last, call endJobArray() to signal that no more rules will be added to this particular job array. Multiple job arrays can be defined after each other in this manner. execute() can only be called if the most recently started job array has been completed with endJobArray.
+
+=head2 startJobArray()
+
+=cut
+
+sub startJobArray {
+    my ( $self, %overrides ) = @_;
+
+    die "startJobArray was called before endJobArray" if $self->{jobArrayOpen};
+    die "jobArrayObject is not undef even though it should be"
+      if defined $self->{currentJobArrayObject};
+
+    # this sub does nothing unless the cluster is SGE
+    return unless $self->{cluster} eq 'SGE';
+
+    my %args = (
+        tmpDir       => $self->globalTmpDir,
+        commandsFile => undef,
+        targetsFile  => undef,
+        prereqsFile  => undef,
+        target       => undef,
+        %overrides,
+    );
+
+    die "startJobArray needs a target to be specified"
+      unless defined $args{target};
+
+    # get a tmp dir to hold job array files
+    $args{tmpDir} = $self->globalTmpDir unless defined $args{tmpDir};
+
+    my $jobArrayObject = {
+        fileHandles => {},
+        files       => {},
+        target      => $target,
+        prereqs     => [],
+    };
+
+    for my $name (qw(commands targets prereqs)) {
+        (
+            $jobArrayObject->{files}->{$name},
+            $jobArrayObject->{fileHandles}->{$name}
+        ) = tmpfile( $name . '_XXXX', DIR => $args{tmpDir} );
+    }
+
+    $self->{currentJobArrayObject} = $jobArrayObject;
+    $self->{jobArrayOpen}          = 1;
+    return;
+}
+
+=head2 addJobArrayRule()
+
+ This structure is designed to work with SGE's job array functionality.  Any rules added to a jobArray structure will be treated as simple add rules when running on localhost, LSF or PBS, but will be executed as a jobArray on SGE.
+
+
+
+=cut
+
+=head2 globalTmpDir()
+
+returns the globalTmpDir (i.e. some tmp dir that is visible to nodes on a cluster (such as in the workdir).  will set globalTmpDir with first argument if not yet set. creates a hidden tmp dir in workdir otherwise.
+
+=cut
+
+sub globalTmpDir {
+    my $self         = shift;
+    my $globalTmpDir = $self->{globalTmpDir};
+
+    # globalTmpDir stays what it is, otherwise it is the first argument,
+    # otherwise it is created in workdir
+    $globalTmpDir = shift(@_) unless defined $globalTmpDir;
+    $globalTmpDir = tempdir(
+        template => '.tmp_XXXX',
+        DIR      => $self->{workdir},
+        CLEANUP  => 1
+    ) unless defined $globalTmpDir;
+
+    return $self->{globalTmpDir};
 }
 
 =head1 AUTHOR
@@ -321,3 +418,4 @@ See http://dev.perl.org/licenses/ for more information.
 
 1;    # End of DistributedMake::base
 
+## Please see file perltidy.ERR
