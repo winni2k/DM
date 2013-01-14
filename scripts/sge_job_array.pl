@@ -28,7 +28,7 @@ close(PREREQS);
 close(TARGETS);
 
 my $run_command = 0;
-foreach my $prereq ( split( /\t/, $prereqs ) ) {
+foreach my $prereq ( split( /\s+/, $prereqs ) ) {
     if ( ( stat($prereq) )[9] > ( stat($target) )[9] ) {
         $run_command = 1;
     }
