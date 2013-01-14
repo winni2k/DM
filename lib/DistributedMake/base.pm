@@ -1,5 +1,5 @@
 package DistributedMake::base;
-use version 0.77; our $VERSION = qv('0.1.002');
+use version 0.77; our $VERSION = qv('0.1.003');
 
 use 5.006;
 use strict;
