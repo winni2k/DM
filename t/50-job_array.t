@@ -28,7 +28,7 @@ $dm->addJobArrayRule(
 );
 $dm->addJobArrayRule(
     target  => $targets[1],
-    prereqs => \@{ @prereqs[ 1 .. 2 ] },
+    prereqs => [ @prereqs[ 1 .. 2 ] ],
     command => "echo 'hi world 2' > $targets[1]",
     cluster => 'SGE'
 );

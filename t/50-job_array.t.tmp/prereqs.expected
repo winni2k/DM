@@ -1,2 +1,2 @@
-t/50-job_array_testing.t.tmp/prereq1
-t/50-job_array_testing.t.tmp/prereq2 t/50-job_array_testing.t.tmp/prereq3
+t/50-job_array.t.tmp/prereq1
+t/50-job_array.t.tmp/prereq2 t/50-job_array.t.tmp/prereq3
