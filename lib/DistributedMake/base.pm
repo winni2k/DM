@@ -329,9 +329,9 @@ sub startJobArray {
     # open file handles
     for my $name (qw(commands targets prereqs)) {
         (
-            $jobArrayObject->{files}->{$name},
-            $jobArrayObject->{fileHandles}->{$name}
-        ) = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir} );
+            $jobArrayObject->{fileHandles}->{$name},
+            $jobArrayObject->{files}->{$name}
+        ) = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir},unlink=>1 );
     }
 
     # save new object
@@ -415,7 +415,8 @@ sub endJobArray {
     my $self = shift;
 
     # close all file handles
-    map { close($_) } @{ $self->{currentJobArrayObject}->{fileHandles} };
+    map { close( $self->{currentJobArrayObject}->{fileHandles}->{$_} ) }
+      keys %{ $self->{currentJobArrayObject}->{fileHandles} };
 
     # add job array rule
     #  makes sure target is touched when everything ran through successfully
