@@ -26,7 +26,7 @@ $dm->addJobArrayRule(
     command => "echo 'hi world 1' > $targets[0]"
 );
 $dm->addJobArrayRule(
-    target  => $targets[2],
+    target  => $targets[1],
     prereqs => \@prereqs[ 1 .. 2 ],
     command => "echo 'hi world 2' > $targets[1]"
 );
