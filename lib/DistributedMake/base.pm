@@ -1,5 +1,5 @@
 package DistributedMake::base;
-use version 0.77; our $VERSION = qv('0.1.003');
+use version 0.77; our $VERSION = qv('0.1.004');
 
 use 5.006;
 use strict;
@@ -13,7 +13,7 @@ DistributedMake::base - A perl module for running pipelines
 
 =head1 VERSION
 
-0.1.003
+0.1.004
 
 =head1 SYNOPSIS
 
