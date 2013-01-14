@@ -302,16 +302,19 @@ sub startJobArray {
     return unless $self->{cluster} eq 'SGE';
 
     my %args = (
-        tmpDir       => $self->globalTmpDir,
         commandsFile => undef,
         targetsFile  => undef,
         prereqsFile  => undef,
         target       => undef,
+        globalTmpDir => undef,
         %overrides,
     );
 
     die "startJobArray needs a target to be specified"
       unless defined $args{target};
+    die
+"startJobArray needs a global temporary directory to be specified with globalTmpDir and for that direcory to exist"
+      unless defined $args{globalTmpDir} && -d $args{globalTmpDir};
 
     my $jobArrayObject = {
         fileHandles => {},
@@ -326,20 +329,17 @@ sub startJobArray {
     };
 
     ## initialize files to hold targets, commands and prereqs for job array
-    # get a tmp dir that is accessible from every node of the cluster
-    $args{tmpDir} = $self->globalTmpDir unless defined $args{tmpDir};
-
     # open file handles
     for my $name (qw(commands targets prereqs)) {
         (
             $jobArrayObject->{files}->{$name},
             $jobArrayObject->{fileHandles}->{$name}
-        ) = tmpfile( $name . '_XXXX', DIR => $args{tmpDir} );
+        ) = tmpfile( $name . '_XXXX', DIR => $args{globalTmpDir} );
     }
 
     # save new object
     $self->{currentJobArrayObject} = $jobArrayObject;
-    return $args{target};
+    return $jobArrayObject;
 }
 
 =head2 addJobArrayRule()
@@ -437,29 +437,6 @@ sub endJobArray {
     }
 
     $self->{currentJobArrayObject} = undef;
-    return $target;
-}
-
-=head2 globalTmpDir()
-
-returns the globalTmpDir (i.e. some tmp dir that is visible to nodes on a cluster (such as in the workdir).  will set globalTmpDir with first argument if not yet set. creates a hidden tmp dir in workdir otherwise.
-
-=cut
-
-sub globalTmpDir {
-    my $self         = shift;
-    my $globalTmpDir = $self->{globalTmpDir};
-
-    # globalTmpDir stays what it is, otherwise it is the first argument,
-    # otherwise it is created in workdir
-    $globalTmpDir = shift(@_) unless defined $globalTmpDir;
-    $globalTmpDir = tempdir(
-        template => '.tmp_XXXX',
-        DIR      => $self->{workdir},
-        CLEANUP  => 1
-    ) unless defined $globalTmpDir;
-
-    return $self->{globalTmpDir};
 }
 
 =head1 AUTHOR
