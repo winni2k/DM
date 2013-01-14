@@ -40,3 +40,5 @@ compare_ok( $jobArrayObject->{files}->{prereqs},
     "$test_dir/prereqs.expected", "prereqs file was created correctly" );
 compare_ok( $jobArrayObject->{files}->{commands},
     "$test_dir/commands.expected", "commands file was created correctly" );
+
+unlink @prereqs;
