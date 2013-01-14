@@ -190,14 +190,14 @@ sub addRule {
         # protect single quotes if running on SGE
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
-        if ( $self->{cluster} eq q/SGE/ ) {
+        if ( $bja->{cluster} eq q/SGE/ ) {
             $modcmd =~ s/'/"'/g;
             $modcmd =~ s/'/'"/g;
             $modcmd =~ s/\$/\$\$/g;
         }
 
         # protect $ signs from make by turning them into $$
-        if ( $self->{cluster} eq q/localhost/ ) {
+        if ( $bja->{cluster} eq q/localhost/ ) {
             $modcmd =~ s/\$/\$\$/g;
         }
 
