@@ -60,12 +60,11 @@ sub new {
         'targets' => [],
 
         # job array related information
-        'jobArrayOpen' => 0,    # has a job array been started but not ended?
-        'jobArrayTargetFiles'  => {},
-        'jobArrayPrereqFiles'  => {},
-        'jobArrayCommandFiles' => {},
+        # check for undef to determine if job array has been
+        # started but not ended
+        'currentJobArrayObject' => undef,
 
-        # other attributes...
+        ## other attributes...
         %args,
     );
 
@@ -230,6 +229,10 @@ This method is called after all rules have been defined in order to write the ma
 sub execute {
     my ( $self, %overrides ) = @_;
 
+    # checking to make sure all started job arrays were ended.
+    die "Need to end all started job arrays with endJobArray()"
+      if defined $self->{currentJobArrayObject};
+
     print { $self->{'makefile'} } "all: "
       . join( " ", @{ $self->{'targets'} } ) . "\n\n";
     print { $self->{'makefile'} } ".DELETE_ON_ERROR:\n";
@@ -279,15 +282,20 @@ sub execute {
 
 First, initialize a job array with startJobArray().  Add rules to the job array with addJobArrayRule().  Last, call endJobArray() to signal that no more rules will be added to this particular job array. Multiple job arrays can be defined after each other in this manner. execute() can only be called if the most recently started job array has been completed with endJobArray.
 
+On SGE, the job array will only be started once the prerequisites of all job array rules have been updated.  On other platforms, each job will start once its prerequisite has been updated.  However, on all platforms, the job array target will only be updated once all rules have completed successfully.
+
 =head2 startJobArray()
+
+daes nothing unless 'cluster' eq 'SGE'.
+Requires 'target' to be specified as input key:
+    startJobArray(target=>$mytarget)
 
 =cut
 
 sub startJobArray {
     my ( $self, %overrides ) = @_;
 
-    die "startJobArray was called before endJobArray" if $self->{jobArrayOpen};
-    die "jobArrayObject is not undef even though it should be"
+    die "startJobArray was called before endJobArray"
       if defined $self->{currentJobArrayObject};
 
     # this sub does nothing unless the cluster is SGE
@@ -305,16 +313,23 @@ sub startJobArray {
     die "startJobArray needs a target to be specified"
       unless defined $args{target};
 
-    # get a tmp dir to hold job array files
-    $args{tmpDir} = $self->globalTmpDir unless defined $args{tmpDir};
-
     my $jobArrayObject = {
         fileHandles => {},
         files       => {},
-        target      => $target,
-        prereqs     => [],
+
+        # final target to touch when all job array rules completed successfully
+        target => $args{target},
+
+        # lists of all targets and prereqs of all rules added to job array
+        arrayTargets => [],
+        arrayPrereqs => [],
     };
 
+    ## initialize files to hold targets, commands and prereqs for job array
+    # get a tmp dir that is accessible from every node of the cluster
+    $args{tmpDir} = $self->globalTmpDir unless defined $args{tmpDir};
+
+    # open file handles
     for my $name (qw(commands targets prereqs)) {
         (
             $jobArrayObject->{files}->{$name},
@@ -322,18 +337,108 @@ sub startJobArray {
         ) = tmpfile( $name . '_XXXX', DIR => $args{tmpDir} );
     }
 
+    # save new object
     $self->{currentJobArrayObject} = $jobArrayObject;
-    $self->{jobArrayOpen}          = 1;
-    return;
+    return $args{target};
 }
 
 =head2 addJobArrayRule()
 
  This structure is designed to work with SGE's job array functionality.  Any rules added to a jobArray structure will be treated as simple add rules when running on localhost, LSF or PBS, but will be executed as a jobArray on SGE.
 
+takes three inputs: target, prereqs, command as such:
+  addJobArrayRule(target=>$mytarget, prereqs=>\@myprereqs, command=>$mycommand);
 
+prereqs may also be a scalar
 
 =cut
+
+sub addJobArrayRule {
+    my $self = shift;
+
+    # get input
+    my %args = @_;
+
+    # check to make sure startJobArray() has been run
+    die "need to run startJobArray() first"
+      unless defined $self->{currentJobArrayObject};
+
+    # check required args.
+    foreach my $arg (qw/target prereqs command/) {
+        die "need to define $arg" unless defined $args{$arg};
+    }
+
+    # just use addRule unless we are in an SGE cluster
+    if ( $self->{cluster} eq 'SGE' ) {
+        $self->addRule( $args{target}, $args{prereqs}, $args{command} );
+        return;
+    }
+
+    ### Add target, prereqs and command to respective files
+    # TARGET
+    my $target =
+      ref( $args{target} ) eq 'ARRAY' ? $args{target}->[0] : $args{target};
+    print { $self->{currentJobArrayObject}->{fileHandles}->{targets} } $target
+      . "\n";
+    push @{ $self->{currentJobArrayObject}->{arrayTargets} }, $target;
+
+    # COMMAND
+    print { $self->{currentJobArrayObject}->{fileHandles}->{commands} }
+      $args{command} . "\n";
+
+    # PREREQS - also add prereqs to job array prereqs file
+    my @prereqs = (
+        ref( $args{prereqs} ) eq 'ARRAY'
+        ? @{ $args{prereqs} }
+        : $args{prereqs}
+    );
+    print { $self->{currentJobArrayObject}->{fileHandles}->{prereqs} }
+      join( q/ /, @prereqs ) . "\n";
+    push @{ $self->{currentJobArrayObject}->{arrayPrereqs} }, @prereqs;
+}
+
+=head2 endJobArray()
+
+Adds the rule that kicks off the job array. 
+Returns the target of the job array.
+
+see startJobArray() for further description.
+
+=cut
+
+sub endJobArray {
+
+    my $self = shift;
+
+    # close all file handles
+    map { close($_) } @{ $self->{currentJobArrayObject}->{fileHandles} };
+
+    # add job array rule
+    #  makes sure target is touched when everything ran through successfully
+    my $target = $self->{currentJobArrayObject}->{target};
+    if ( $self->{cluster} eq 'SGE' ) {
+        $self->addRule(
+            $self->{currentJobArrayObject}->{target},
+            $self->{currentJobArrayObject}->{arrayPrereqs},
+            $self->{sgeJobArrayPl} . ' -t '
+              . $self->{currentJobArrayObject}->{files}->{targets} . ' -p '
+              . $self->{currentJobArrayObject}->{files}->{prereqs} . ' -c '
+              . $self->{currentJobArrayObject}->{files}->{commands}
+              . " && touch $target"
+        );
+    }
+    else {
+        $self->addRule(
+            $self->{currentJobArrayObject}->{target},
+            $self->{currentJobArrayObject}->{arrayTargets},
+            "touch $target"
+        );
+
+    }
+
+    $self->{currentJobArrayObject} = undef;
+    return $target;
+}
 
 =head2 globalTmpDir()
 
