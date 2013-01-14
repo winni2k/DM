@@ -298,9 +298,6 @@ sub startJobArray {
     die "startJobArray was called before endJobArray"
       if defined $self->{currentJobArrayObject};
 
-    # this sub does nothing unless the cluster is SGE
-    return unless $self->{cluster} eq 'SGE';
-
     my %args = (
         commandsFile => undef,
         targetsFile  => undef,
@@ -368,33 +365,40 @@ sub addJobArrayRule {
         die "need to define $arg" unless defined $args{$arg};
     }
 
-    # just use addRule unless we are in an SGE cluster
-    if ( $self->{cluster} eq 'SGE' ) {
-        $self->addRule( $args{target}, $args{prereqs}, $args{command} );
-        return;
-    }
-
-    ### Add target, prereqs and command to respective files
-    # TARGET
+    # keep track of all rule targets
     my $target =
       ref( $args{target} ) eq 'ARRAY' ? $args{target}->[0] : $args{target};
-    print { $self->{currentJobArrayObject}->{fileHandles}->{targets} } $target
-      . "\n";
     push @{ $self->{currentJobArrayObject}->{arrayTargets} }, $target;
 
-    # COMMAND
-    print { $self->{currentJobArrayObject}->{fileHandles}->{commands} }
-      $args{command} . "\n";
-
-    # PREREQS - also add prereqs to job array prereqs file
+    # keep track of all rule prereqs
     my @prereqs = (
         ref( $args{prereqs} ) eq 'ARRAY'
         ? @{ $args{prereqs} }
         : $args{prereqs}
     );
-    print { $self->{currentJobArrayObject}->{fileHandles}->{prereqs} }
-      join( q/ /, @prereqs ) . "\n";
     push @{ $self->{currentJobArrayObject}->{arrayPrereqs} }, @prereqs;
+
+    # just use addRule unless we are in an SGE cluster
+    unless ( $self->{cluster} eq 'SGE'
+        || ( defined $args{cluster} && $args{cluster} eq 'SGE' ) )
+    {
+        $self->addRule( $args{target}, $args{prereqs}, $args{command}, %args );
+    }
+    else {
+
+        ### Add target, prereqs and command to respective files
+        # TARGET
+        print { $self->{currentJobArrayObject}->{fileHandles}->{targets} }
+          $target . "\n";
+
+        # COMMAND
+        print { $self->{currentJobArrayObject}->{fileHandles}->{commands} }
+          $args{command} . "\n";
+
+        # PREREQS - also add prereqs to job array prereqs file
+        print { $self->{currentJobArrayObject}->{fileHandles}->{prereqs} }
+          join( q/ /, @prereqs ) . "\n";
+    }
 }
 
 =head2 endJobArray()
