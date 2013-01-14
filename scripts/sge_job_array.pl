@@ -27,9 +27,16 @@ close(COMMANDS);
 close(PREREQS);
 close(TARGETS);
 
-foreach my $prereq ( split( /\s+/, $prereqs ) ) {
+my $run_command = 0;
+foreach my $prereq ( split( /\t/, $prereqs ) ) {
     if ( ( stat($prereq) )[9] > ( stat($target) )[9] ) {
-        system($command );
-        exit( $? & 127 );
+        $run_command = 1;
     }
 }
+
+if($run_command){
+        system($command );
+        exit( $? & 127 );
+}
+
+exit(0);
