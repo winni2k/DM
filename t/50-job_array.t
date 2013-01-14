@@ -1,6 +1,6 @@
 #!perl
 use Test::More tests => 3;
-use File::Compare;
+use Test::Files;
 use DistributedMake::base 0.001003;
 
 my $test_dir = 't/50-job_array.t.tmp';
@@ -23,29 +23,20 @@ my $jobArrayObject = $dm->startJobArray(
 $dm->addJobArrayRule(
     target  => $targets[0],
     prereqs => $prereqs[0],
-    command => "echo 'hi world 1' > $targets[0]"
+    command => "echo 'hi world 1' > $targets[0]",
+    cluster => 'SGE'
 );
 $dm->addJobArrayRule(
     target  => $targets[1],
-    prereqs => \@prereqs[ 1 .. 2 ],
-    command => "echo 'hi world 2' > $targets[1]"
+    prereqs => \@{ @prereqs[ 1 .. 2 ] },
+    command => "echo 'hi world 2' > $targets[1]",
+    cluster => 'SGE'
 );
 $dm->endJobArray();
 
-ok(
-    compare(
-        $jobArrayObject->{files}->{targets}, "$test_dir/targets.expected"
-      ) == 0,
-    "targets file was created correctly"
-);
-ok(
-    compare(
-        $jobArrayObject->{files}->{prereqs}, "$test_dir/prereqs.expected"
-      ) == 0,
-    "prereqs file was created correctly"
-);
-ok(
-    compare( $jobArrayObject->{files}->{commands},
-        "$test_dir/commands.expected" ) == 0,
-    "commands file was created correctly"
-);
+compare_ok( $jobArrayObject->{files}->{targets},
+    "$test_dir/targets.expected", "targets file was created correctly" );
+compare_ok( $jobArrayObject->{files}->{prereqs},
+    "$test_dir/prereqs.expected", "prereqs file was created correctly" );
+compare_ok( $jobArrayObject->{files}->{commands},
+    "$test_dir/commands.expected", "commands file was created correctly" );

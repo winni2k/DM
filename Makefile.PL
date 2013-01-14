@@ -20,8 +20,10 @@ WriteMakefile(
     PL_FILES  => {},
     PREREQ_PM => {
         'Test::More'      => 0,
+        'Test::Files'     => 0,
         'File::Temp'      => 0,
         'File::Basename'  => 0,
+    'File::Compare' => 0,
         'Term::ANSIColor' => 0,
     },
     EXE_FILES => [qw(scripts/sge_job_array.pl)],
