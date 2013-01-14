@@ -331,7 +331,7 @@ sub startJobArray {
         (
             $jobArrayObject->{fileHandles}->{$name},
             $jobArrayObject->{files}->{$name}
-        ) = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir},unlink=>1 );
+        ) = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir},UNLINK=>1 );
     }
 
     # save new object
