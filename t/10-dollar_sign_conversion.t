@@ -16,6 +16,9 @@ $dm->execute();
 
 ok( compare( $target1, $target1_expected ) == 0, "Hello world got written" );
 
+# cleanup
+unlink $target1
+
 ###
 # check the protection of $ signs works correctly
 my $target2 = init_testfile("$test_dir/target2");
@@ -27,6 +30,9 @@ $dm->addRule( $target2, "", $target2_command , queue=>'localhost');
 $dm->execute();
 
 ok( compare( $target2, $target2_expected ) == 0, "Hello world got written 2" );
+
+# cleanup
+unlink $target2
 
 sub init_testfile {
 
