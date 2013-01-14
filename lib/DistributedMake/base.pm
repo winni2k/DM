@@ -4,7 +4,7 @@ use version 0.77; our $VERSION = qv('0.1.003');
 use 5.006;
 use strict;
 use warnings;
-use File::Temp qw/tempdir/;
+use File::Temp qw/tempdir tempfile/;
 use File::Basename;
 
 =head1 NAME
@@ -331,7 +331,7 @@ sub startJobArray {
         (
             $jobArrayObject->{files}->{$name},
             $jobArrayObject->{fileHandles}->{$name}
-        ) = tmpfile( $name . '_XXXX', DIR => $args{globalTmpDir} );
+        ) = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir} );
     }
 
     # save new object
