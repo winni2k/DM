@@ -331,7 +331,9 @@ sub startJobArray {
         (
             $jobArrayObject->{fileHandles}->{$name},
             $jobArrayObject->{files}->{$name}
-        ) = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir},UNLINK=>1 );
+          )
+          = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir},
+            UNLINK => 1 );
     }
 
     # save new object
@@ -425,7 +427,7 @@ sub endJobArray {
         $self->addRule(
             $self->{currentJobArrayObject}->{target},
             $self->{currentJobArrayObject}->{arrayPrereqs},
-            $self->{sgeJobArrayPl} . ' -t '
+            'sge_job_array.pl  -t '
               . $self->{currentJobArrayObject}->{files}->{targets} . ' -p '
               . $self->{currentJobArrayObject}->{files}->{prereqs} . ' -c '
               . $self->{currentJobArrayObject}->{files}->{commands}
