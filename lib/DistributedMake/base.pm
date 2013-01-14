@@ -73,10 +73,11 @@ sub new {
     chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
     chomp( my $bsub        = qx(which bsub 2>/dev/null) );
 
-    if    ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
-#    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
-    elsif ( -e $bsub )        { $self{'cluster'} = 'LSF'; }
-    else                      { $self{'cluster'} = 'localhost'; }
+    if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
+
+  #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
+    elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
+    else               { $self{'cluster'} = 'localhost'; }
 
     bless \%self, $class;
 
@@ -184,14 +185,14 @@ sub addRule {
         # protect single quotes if running on SGE
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
-        if ( $bja->{cluster} eq q/SGE/ ) {
+        if ( $bja{cluster} eq q/SGE/ ) {
             $modcmd =~ s/'/"'/g;
             $modcmd =~ s/'/'"/g;
             $modcmd =~ s/\$/\$\$/g;
         }
 
         # protect $ signs from make by turning them into $$
-        if ( $bja->{cluster} eq q/localhost/ ) {
+        if ( $bja{cluster} eq q/localhost/ ) {
             $modcmd =~ s/\$/\$\$/g;
         }
 
