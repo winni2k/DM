@@ -3,7 +3,7 @@ use Test::More tests => 3;
 use File::Compare;
 use DistributedMake::base 0.001003;
 
-my $test_dir = 't/50-job_array_testing.t.tmp';
+my $test_dir = 't/50-job_array.t.tmp';
 
 my $dm = DistributedMake::base->new(
     "dryRun"   => 1,
