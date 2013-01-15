@@ -63,6 +63,7 @@ sub new {
         # check for undef to determine if job array has been
         # started but not ended
         'currentJobArrayObject' => undef,
+        'globalTmpDir' => undef, # necessary for running job arrays
 
         ## other attributes...
         %args,
@@ -287,8 +288,8 @@ On SGE, the job array will only be started once the prerequisites of all job arr
 =head2 startJobArray()
 
 daes nothing unless 'cluster' eq 'SGE'.
-Requires 'target' to be specified as input key:
-    startJobArray(target=>$mytarget)
+Requires 'target' and 'globalTmpDir' to be specified as input keys:
+    startJobArray(target=>$mytarget, globalTmpDir=>$mytmpdir)
 
 =cut
 
@@ -309,6 +310,11 @@ sub startJobArray {
 
     die "startJobArray needs a target to be specified"
       unless defined $args{target};
+
+    # pull object tmp dir if none was passed in
+    $args{globalTmpDir} = defined $args{globalTmpDir} ? $args{globalTmpDir} : $self->{globalTmpDir};
+
+    # make sure globalTmpDir is defined and exists
     die
 "startJobArray needs a global temporary directory to be specified with globalTmpDir and for that direcory to exist"
       unless defined $args{globalTmpDir} && -d $args{globalTmpDir};
