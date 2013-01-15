@@ -34,13 +34,13 @@ foreach my $prereq ( split( /\s+/, $prereqs ) ) {
     }
 }
 
-if($run_command){
-        system($command );
-        my        $exit_val = $? & 127;
-        if( $exit_val > 0){
-            unlink $target;
-        }
-        exit( $exit_val );
+if ($run_command) {
+    system($command );
+    my $exit_val = $? & 127;
+    if ( $exit_val > 0 ) {
+        unlink $target;
+    }
+    exit($exit_val);
 }
 
 exit(0);
