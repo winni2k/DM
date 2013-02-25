@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use File::Temp qw/tempdir/;
 use File::Basename;
+use Carp;
 
 =head1 NAME
 
@@ -85,7 +86,37 @@ sub new {
 
     bless \%self, $class;
 
+    my $self = \%self;
+    $self->_check_arg_consistency(%self);
+
     return \%self;
+}
+
+=head1 _check_arg_consistency
+
+We should really be checking arguments in one central place, instead of ad-hoc throughout the script - winni
+This will allow us to make DistributedMake "fussy".
+
+=cut
+
+sub _check_arg_consistency {
+
+    my ( $self, %bja ) = @_;
+
+    if ( defined $bja{PE}->{name} xor defined $bja{PE}->{name} ) {
+        croak
+          "both 'name' and 'range' need to specified when using the PE option";
+    }
+
+    # cluster related tests
+    my $error = q//;
+    if ( $bja{cluster} ne 'localhost' ) {
+        $error .= "cluster is not 'localhost'\n\t";
+
+        unless ( defined $bja{PE}->{name} || defined $bja{queue} ) {
+            croak $error. "either 'queue' or 'PE' or both need to be defined";
+        }
+    }
 }
 
 sub addRule {
@@ -110,6 +141,10 @@ sub addRule {
         'extra'       => $self->{'extra'},
         %batchjoboverrides,
     );
+
+    # we should really be checking arguments in one central place,
+    # instead of ad-hoc throughout the script - winni
+    $self->_check_arg_consistency(%bja);
 
 # Setup the pre-commands (things like pre-making directories that will hold log files and output files)
     my @precmds;
@@ -154,7 +189,7 @@ sub addRule {
     my $cmdprefix  = "";
     my $cmdpostfix = "";
 
-    if ( ( defined( $bja{'queue'} ) || defined $bja{'PE'} )
+    if ( ( defined( $bja{'queue'} ) || defined $bja{'PE'}->{name} )
         && $bja{'cluster'} ne 'localhost' )
     {
         if ( $bja{'cluster'} eq 'SGE' ) {
@@ -183,7 +218,7 @@ sub addRule {
 #$cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}";
         }
         else {
-            die "unknown cluster type $bja{cluster}";
+            croak "unknown cluster type $bja{cluster}";
         }
     }
     else {
