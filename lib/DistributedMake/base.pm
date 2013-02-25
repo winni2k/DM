@@ -46,9 +46,10 @@ sub new {
         'unlink'         => 1,    # 0 = don't clean tmp file
 
         # Cluster engine options
-        'queue'       => undef,
-        'cluster'     => undef,
-        'memLimit'    => 4,                       # in gigabytes
+        'queue'    => undef,
+        'cluster'  => undef,
+        'PE'       => { name => undef, range => undef },  # parallel environment
+        'memLimit' => 4,                                  # in gigabytes
         'rerunnable'  => 0,
         'name'        => undef,
         'projectName' => undef,
