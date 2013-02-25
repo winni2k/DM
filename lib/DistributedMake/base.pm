@@ -110,7 +110,8 @@ This will allow us to make DistributedMake "fussy".
 
 sub _check_arg_consistency {
 
-    my ( $self, %bja ) = @_;
+    my ( $self, %overrides ) = @_;
+    my %bja = (%{$self}, %overrides);
 
     if ( defined $bja{PE}->{name} xor defined $bja{PE}->{name} ) {
         croak
