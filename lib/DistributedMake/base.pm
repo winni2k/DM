@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;
+use Carp;
 
 =head1 NAME
 
@@ -46,9 +47,10 @@ sub new {
         'unlink'         => 1,    # 0 = don't clean tmp file
 
         # Cluster engine options
-        'queue'       => undef,
-        'cluster'     => 'localhost',
-        'memLimit'    => 4,                       # in gigabytes
+        'queue'    => undef,
+        'cluster'  => undef,
+        'PE'       => { name => undef, range => undef },  # parallel environment
+        'memLimit' => 4,                                  # in gigabytes
         'rerunnable'  => 0,
         'name'        => undef,
         'projectName' => undef,
@@ -80,16 +82,49 @@ sub new {
     chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
     chomp( my $bsub        = qx(which bsub 2>/dev/null) );
 
-    if ( defined $self{queue} && $self{queue} ne 'localhost' ) {
+    unless ( defined $self{cluster} ) {
+
         if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
 
   #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
         elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
+        else               { $self{'cluster'} = 'localhost'; }
+
     }
 
     bless \%self, $class;
 
+    my $self = \%self;
+    $self->_check_arg_consistency(%self);
+
     return \%self;
+}
+
+=head1 _check_arg_consistency
+
+We should really be checking arguments in one central place, instead of ad-hoc throughout the script - winni
+This will allow us to make DistributedMake "fussy".
+
+=cut
+
+sub _check_arg_consistency {
+
+    my ( $self, %bja ) = @_;
+
+    if ( defined $bja{PE}->{name} xor defined $bja{PE}->{name} ) {
+        croak
+          "both 'name' and 'range' need to specified when using the PE option";
+    }
+
+    # cluster related tests
+    my $error = q//;
+    if ( $bja{cluster} ne 'localhost' ) {
+        $error .= "cluster is not 'localhost'\n\t";
+
+        unless ( defined $bja{PE}->{name} || defined $bja{queue} ) {
+            croak $error. "either 'queue' or 'PE' or both need to be defined";
+        }
+    }
 }
 
 sub addRule {
@@ -114,6 +149,10 @@ sub addRule {
         'extra'       => $self->{'extra'},
         %batchjoboverrides,
     );
+
+    # we should really be checking arguments in one central place,
+    # instead of ad-hoc throughout the script - winni
+    $self->_check_arg_consistency(%bja);
 
 # Setup the pre-commands (things like pre-making directories that will hold log files and output files)
     my @precmds;
@@ -158,7 +197,9 @@ sub addRule {
     my $cmdprefix  = "";
     my $cmdpostfix = "";
 
-    if ( defined( $bja{'queue'} ) && $bja{'queue'} ne 'localhost' ) {
+    if ( ( defined( $bja{'queue'} ) || defined $bja{'PE'}->{name} )
+        && $bja{'cluster'} ne 'localhost' )
+    {
         if ( $bja{'cluster'} eq 'SGE' ) {
             $cmdprefix =
 "qsub -sync y -cwd -V -b yes -j y -l h_vmem=${memRequest}G -o $bja{'outputFile'} -N $bja{'name'}";
@@ -168,8 +209,12 @@ sub addRule {
               : "";
             $cmdprefix .= ( $bja{'rerunnable'} == 1 ) ? " -r yes" : " -r no";
             $cmdprefix .=
-              ( defined( $bja{'queue'} ) && $bja{'queue'} ne 'cluster' )
+              defined( $bja{'queue'} )
               ? " -q $bja{'queue'}"
+              : "";
+            $cmdprefix .=
+              defined( $bja{PE} )
+              ? " -pe " . $bja{PE}->{name} . q/ / . $bja{PE}->{range}
               : "";
             $cmdprefix .= $bja{'extra'};
         }
@@ -179,6 +224,9 @@ sub addRule {
         elsif ( $bja{'cluster'} eq 'LSF' ) {
 
 #$cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}";
+        }
+        else {
+            croak "unknown cluster type $bja{cluster}";
         }
     }
     else {
