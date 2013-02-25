@@ -47,6 +47,7 @@ sub new {
 
         # Cluster engine options
         'queue'       => undef,
+        'cluster'     => undef,
         'memLimit'    => 4,                       # in gigabytes
         'rerunnable'  => 0,
         'name'        => undef,
@@ -73,11 +74,13 @@ sub new {
     chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
     chomp( my $bsub        = qx(which bsub 2>/dev/null) );
 
-    if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
+    unless ( defined $self{cluster} ) {
+        if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
 
   #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
-    elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
-    else               { $self{'cluster'} = 'localhost'; }
+        elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
+        else               { $self{'cluster'} = 'localhost'; }
+    }
 
     bless \%self, $class;
 
@@ -167,7 +170,7 @@ sub addRule {
               : "";
             $cmdprefix .=
               defined( $bja{PE} )
-              ? " -pe ".$bja{PE}->{name}. q/ /. $bja{PE}->{range}
+              ? " -pe " . $bja{PE}->{name} . q/ / . $bja{PE}->{range}
               : "";
             $cmdprefix .= $bja{'extra'};
         }
