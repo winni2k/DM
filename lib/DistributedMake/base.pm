@@ -150,7 +150,9 @@ sub addRule {
     my $cmdprefix  = "";
     my $cmdpostfix = "";
 
-    if ( defined( $bja{'queue'} ) && $bja{'queue'} ne 'localhost' ) {
+    if ( ( defined( $bja{'queue'} ) || defined $bja{'PE'} )
+        && $bja{'cluster'} ne 'localhost' )
+    {
         if ( $bja{'cluster'} eq 'SGE' ) {
             $cmdprefix =
 "qsub -sync y -cwd -V -b yes -j y -l h_vmem=${memRequest}G -o $bja{'outputFile'} -N $bja{'name'}";
@@ -160,8 +162,12 @@ sub addRule {
               : "";
             $cmdprefix .= ( $bja{'rerunnable'} == 1 ) ? " -r yes" : " -r no";
             $cmdprefix .=
-              ( defined( $bja{'queue'} ) && $bja{'queue'} ne 'cluster' )
+              defined( $bja{'queue'} )
               ? " -q $bja{'queue'}"
+              : "";
+            $cmdprefix .=
+              defined( $bja{PE} )
+              ? " -pe ".$bja{PE}->{name}. q/ /. $bja{PE}->{range}
               : "";
             $cmdprefix .= $bja{'extra'};
         }
@@ -171,6 +177,9 @@ sub addRule {
         elsif ( $bja{'cluster'} eq 'LSF' ) {
 
 #$cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}";
+        }
+        else {
+            die "unknown cluster type $bja{cluster}";
         }
     }
     else {
