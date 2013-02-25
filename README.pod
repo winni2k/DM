@@ -4,7 +4,7 @@ DistributedMake::base - A perl module for running pipelines
 
 =head1 VERSION
 
-0.1.005
+0.1.006
 
 =head1 SYNOPSIS
 
@@ -15,6 +15,14 @@ todo
 - Never make a directory a dependency. DistributedMake creates directories as it needs them.
 - Never create rules that delete files. Delete files by hand instead. Chances are, Youwill be sorry otherwise.
 - make runs in dryRun mode by default (this is for your own safety!).  Pass in 'dryRun => 0' to new() to run.
+
+
+=cut
+
+=head1 _check_arg_consistency
+
+We should really be checking arguments in one central place, instead of ad-hoc throughout the script - winni
+This will allow us to make DistributedMake "fussy".
 
 
 =cut
