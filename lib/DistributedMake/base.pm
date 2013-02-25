@@ -56,7 +56,7 @@ sub new {
         'projectName'    => undef,
         'outputFile'     => 'distributedmake.log',
         'extra'          => '',
-        supportedEngines => { SGE => 1, localhost => 1, LSF => 0, PBS=>0 },
+        supportedEngines => { SGE => 1, localhost => 1, LSF => 0, PBS => 0 },
 
         # make options
         'tmpdir'  => '/tmp',
@@ -111,7 +111,7 @@ This will allow us to make DistributedMake "fussy".
 sub _check_arg_consistency {
 
     my ( $self, %overrides ) = @_;
-    my %bja = (%{$self}, %overrides);
+    my %bja = ( %{$self}, %overrides );
 
     if ( defined $bja{PE}->{name} xor defined $bja{PE}->{name} ) {
         croak
@@ -121,7 +121,8 @@ sub _check_arg_consistency {
     # testing supported clusters
     my $isSupported = 0;
     foreach my $engine ( sort keys %{ $bja{supportedEngines} } ) {
-        $isSupported = 1 if ($bja{cluster} eq $engine && $bja{supportedEngines}->{$engine})
+        $isSupported = 1
+          if ( $bja{cluster} eq $engine && $bja{supportedEngines}->{$engine} );
     }
     croak "$bja{cluster} is not a supported engine" unless $isSupported;
 
@@ -131,7 +132,7 @@ sub _check_arg_consistency {
         $error .= "cluster is not 'localhost'\n\t";
 
         unless ( defined $bja{PE}->{name} || defined $bja{queue} ) {
-            croak $error. "either 'queue' or 'PE' or both need to be defined";
+            carp $error. "either 'queue' or 'PE' or both need to be defined";
         }
     }
 }
@@ -231,11 +232,12 @@ sub addRule {
 
 #$cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}";
     }
-    elsif  ( $bja{'cluster'} eq 'localhost' ) {
+    elsif ( $bja{'cluster'} eq 'localhost' ) {
         $cmdpostfix = "| tee -a $bja{'outputFile'}";
     }
-    else{
-        croak "programming error. unknkown engine $bja{cluster} was not caught by argument checking";
+    else {
+        croak
+"programming error. unknkown engine $bja{cluster} was not caught by argument checking";
     }
 
     my @modcmds;
