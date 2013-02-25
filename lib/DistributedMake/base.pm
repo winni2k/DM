@@ -47,6 +47,7 @@ sub new {
 
         # Cluster engine options
         'queue'       => undef,
+        'cluster'     => 'localhost',
         'memLimit'    => 4,                       # in gigabytes
         'rerunnable'  => 0,
         'name'        => undef,
@@ -79,12 +80,11 @@ sub new {
     chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
     chomp( my $bsub        = qx(which bsub 2>/dev/null) );
 
-    if ( $self{queue} ne 'localhost' ) {
+    if ( defined $self{queue} && $self{queue} ne 'localhost' ) {
         if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
 
   #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
         elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
-        else               { $self{'cluster'} = 'localhost'; }
     }
 
     bless \%self, $class;

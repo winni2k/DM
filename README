@@ -2,7 +2,7 @@ NAME
     DistributedMake::base - A perl module for running pipelines
 
 VERSION
-    0.1.004
+    0.1.005
 
 SYNOPSIS
     todo
