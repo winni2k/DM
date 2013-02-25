@@ -51,11 +51,12 @@ sub new {
         'cluster'  => undef,
         'PE'       => { name => undef, range => undef },  # parallel environment
         'memLimit' => 4,                                  # in gigabytes
-        'rerunnable'  => 0,
-        'name'        => undef,
-        'projectName' => undef,
-        'outputFile'  => 'distributedmake.log',
-        'extra'       => '',
+        'rerunnable'     => 0,
+        'name'           => undef,
+        'projectName'    => undef,
+        'outputFile'     => 'distributedmake.log',
+        'extra'          => '',
+        supportedEngines => { SGE => 1, localhost => 1, LSF => 0, PBS=>0 },
 
         # make options
         'tmpdir'  => '/tmp',
@@ -115,6 +116,13 @@ sub _check_arg_consistency {
         croak
           "both 'name' and 'range' need to specified when using the PE option";
     }
+
+    # testing supported clusters
+    my $isSupported = 0;
+    foreach my $engine ( sort keys %{ $bja{supportedEngines} } ) {
+        $isSupported = 1 if ($bja{cluster} eq $engine && $bja{supportedEngines}->{$engine})
+    }
+    croak "$bja{cluster} is not a supported engine" unless $isSupported;
 
     # cluster related tests
     my $error = q//;
@@ -197,40 +205,36 @@ sub addRule {
     my $cmdprefix  = "";
     my $cmdpostfix = "";
 
-    if ( ( defined( $bja{'queue'} ) || defined $bja{'PE'}->{name} )
-        && $bja{'cluster'} ne 'localhost' )
-    {
-        if ( $bja{'cluster'} eq 'SGE' ) {
-            $cmdprefix =
+    if ( $bja{'cluster'} eq 'SGE' ) {
+        $cmdprefix =
 "qsub -sync y -cwd -V -b yes -j y -l h_vmem=${memRequest}G -o $bja{'outputFile'} -N $bja{'name'}";
-            $cmdprefix .=
-              ( defined( $bja{'projectName'} ) )
-              ? " -P $bja{'projectName'}"
-              : "";
-            $cmdprefix .= ( $bja{'rerunnable'} == 1 ) ? " -r yes" : " -r no";
-            $cmdprefix .=
-              defined( $bja{'queue'} )
-              ? " -q $bja{'queue'}"
-              : "";
-            $cmdprefix .=
-              defined( $bja{PE} )
-              ? " -pe " . $bja{PE}->{name} . q/ / . $bja{PE}->{range}
-              : "";
-            $cmdprefix .= $bja{'extra'};
-        }
-        elsif ( $bja{'cluster'} eq 'PBS' ) {
+        $cmdprefix .=
+          ( defined( $bja{'projectName'} ) )
+          ? " -P $bja{'projectName'}"
+          : "";
+        $cmdprefix .= ( $bja{'rerunnable'} == 1 ) ? " -r yes" : " -r no";
+        $cmdprefix .=
+          defined( $bja{'queue'} )
+          ? " -q $bja{'queue'}"
+          : "";
+        $cmdprefix .=
+          defined( $bja{PE} )
+          ? " -pe " . $bja{PE}->{name} . q/ / . $bja{PE}->{range}
+          : "";
+        $cmdprefix .= $bja{'extra'};
+    }
+    elsif ( $bja{'cluster'} eq 'PBS' ) {
 
-        }
-        elsif ( $bja{'cluster'} eq 'LSF' ) {
+    }
+    elsif ( $bja{'cluster'} eq 'LSF' ) {
 
 #$cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}";
-        }
-        else {
-            croak "unknown cluster type $bja{cluster}";
-        }
     }
-    else {
+    elsif  ( $bja{'cluster'} eq 'localhost' ) {
         $cmdpostfix = "| tee -a $bja{'outputFile'}";
+    }
+    else{
+        croak "programming error. unknkown engine $bja{cluster} was not caught by argument checking";
     }
 
     my @modcmds;
