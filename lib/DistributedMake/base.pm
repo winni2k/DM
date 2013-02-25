@@ -1,5 +1,5 @@
 package DistributedMake::base;
-use version 0.77; our $VERSION = qv('0.1.004');
+use version 0.77; our $VERSION = qv('0.1.005');
 
 use 5.006;
 use strict;
@@ -13,7 +13,7 @@ DistributedMake::base - A perl module for running pipelines
 
 =head1 VERSION
 
-0.1.004
+0.1.005
 
 =head1 SYNOPSIS
 
@@ -63,7 +63,7 @@ sub new {
         # check for undef to determine if job array has been
         # started but not ended
         'currentJobArrayObject' => undef,
-        'globalTmpDir' => undef, # necessary for running job arrays
+        'globalTmpDir'          => undef,    # necessary for running job arrays
 
         ## other attributes...
         %args,
@@ -79,11 +79,13 @@ sub new {
     chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
     chomp( my $bsub        = qx(which bsub 2>/dev/null) );
 
-    if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
+    if ( $self{queue} ne 'localhost' ) {
+        if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
 
   #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
-    elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
-    else               { $self{'cluster'} = 'localhost'; }
+        elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
+        else               { $self{'cluster'} = 'localhost'; }
+    }
 
     bless \%self, $class;
 
@@ -312,7 +314,8 @@ sub startJobArray {
       unless defined $args{target};
 
     # pull object tmp dir if none was passed in
-    $args{globalTmpDir} = defined $args{globalTmpDir} ? $args{globalTmpDir} : $self->{globalTmpDir};
+    $args{globalTmpDir} =
+      defined $args{globalTmpDir} ? $args{globalTmpDir} : $self->{globalTmpDir};
 
     # make sure globalTmpDir is defined and exists
     die
@@ -338,8 +341,11 @@ sub startJobArray {
             $jobArrayObject->{fileHandles}->{$name},
             $jobArrayObject->{files}->{$name}
           )
-          = tempfile( $name . '_XXXX', DIR => $args{globalTmpDir},
-            UNLINK => 1 );
+          = tempfile(
+            $name . '_XXXX',
+            DIR    => $args{globalTmpDir},
+            UNLINK => 1
+          );
     }
 
     # save new object
