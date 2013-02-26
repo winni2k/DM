@@ -1,5 +1,5 @@
 package DistributedMake::base;
-use version 0.77; our $VERSION = qv('0.1.012');
+use version 0.77; our $VERSION = qv('0.1.013');
 
 use 5.006;
 use strict;
@@ -14,7 +14,7 @@ DistributedMake::base - A perl module for running pipelines
 
 =head1 VERSION
 
-0.1.012
+0.1.013
 
 =head1 SYNOPSIS
 
@@ -466,7 +466,7 @@ sub addJobArrayRule {
         my @precmds;
         foreach my $target (@targets) {
             my $rootdir = dirname($target);
-            my $mkdircmd = "\@test \"! -d $rootdir\" && mkdir -p $rootdir";
+            my $mkdircmd = "test \"! -d $rootdir\" && mkdir -p $rootdir";
             push( @precmds, $mkdircmd );
         }
 
