@@ -1,5 +1,5 @@
 package DistributedMake::base;
-use version 0.77; our $VERSION = qv('0.1.006');
+use version 0.77; our $VERSION = qv('0.1.008');
 
 use 5.006;
 use strict;
@@ -14,7 +14,7 @@ DistributedMake::base - A perl module for running pipelines
 
 =head1 VERSION
 
-0.1.006
+0.1.008
 
 =head1 SYNOPSIS
 
@@ -487,6 +487,9 @@ sub endJobArray {
     map { close( $self->{currentJobArrayObject}->{fileHandles}->{$_} ) }
       keys %{ $self->{currentJobArrayObject}->{fileHandles} };
 
+    # determine how many tasks to kick off in job array
+    my $arrayTasks = @{ $self->{currentJobArrayObject}->{arrayTargets} };
+
     # add job array rule
     #  makes sure target is touched when everything ran through successfully
     my $target = $self->{currentJobArrayObject}->{target};
@@ -494,7 +497,7 @@ sub endJobArray {
         $self->addRule(
             $self->{currentJobArrayObject}->{target},
             $self->{currentJobArrayObject}->{arrayPrereqs},
-            'sge_job_array.pl  -t '
+            " -t $arrayTasks  sge_job_array.pl  -t "
               . $self->{currentJobArrayObject}->{files}->{targets} . ' -p '
               . $self->{currentJobArrayObject}->{files}->{prereqs} . ' -c '
               . $self->{currentJobArrayObject}->{files}->{commands}
