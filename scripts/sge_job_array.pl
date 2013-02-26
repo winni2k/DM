@@ -21,8 +21,11 @@ my $prereqs;
 my $target;
 for ( 1 .. $ENV{SGE_TASK_ID} ) {
     $command = <COMMANDS>;
+    chomp $command;
     $prereqs = <PREREQS>;
+    chomp $prereqs;
     $target  = <TARGETS>;
+    chomp $target;
 }
 close(COMMANDS);
 close(PREREQS);
