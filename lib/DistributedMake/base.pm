@@ -438,7 +438,7 @@ sub addJobArrayRule {
     # keep track of all rule targets
     my @targets =
       ref( $args{target} ) eq 'ARRAY' ? @{ $args{target} } : ( $args{target} );
-    push @{ $self->{currentJobArrayObject}->{arrayTargets} }, $target;
+    push @{ $self->{currentJobArrayObject}->{arrayTargets} }, $targets[0];
 
     # keep track of all rule prereqs
     my @prereqs = (
