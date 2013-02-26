@@ -498,7 +498,7 @@ sub endJobArray {
         $self->addRule(
             $self->{currentJobArrayObject}->{target},
             $self->{currentJobArrayObject}->{arrayPrereqs},
-            " -t $arrayTasks  sge_job_array.pl  -t "
+            " -t 1-$arrayTasks:1  sge_job_array.pl  -t "
               . $self->{currentJobArrayObject}->{files}->{targets} . ' -p '
               . $self->{currentJobArrayObject}->{files}->{prereqs} . ' -c '
               . $self->{currentJobArrayObject}->{files}->{commands}
