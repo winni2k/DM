@@ -220,7 +220,7 @@ sub addRule {
           ? " -q $bja{'queue'}"
           : "";
         $cmdprefix .=
-          defined( $bja{PE} )
+          defined( $bja{PE}->{name} )
           ? " -pe " . $bja{PE}->{name} . q/ / . $bja{PE}->{range}
           : "";
         $cmdprefix .= $bja{'extra'};
