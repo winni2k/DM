@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
+use Getopt::Std;
 my %args;
 getopt( 'ctp', \%args );
 my $commands_file = defined $args{c}
