@@ -197,7 +197,7 @@ sub addRule {
             ($name) = $firstcmd =~ /-jar\s+(.+?)\s+/;
         }
         else {
-            $firstcmd =~ m/([A-Za-z0-9\.\_\-]+)/;
+            $firstcmd =~ m/([A-Za-z0-9\_\/]+)/;
             $name = $1;
         }
 
