@@ -24,7 +24,7 @@ for ( 1 .. $ENV{SGE_TASK_ID} ) {
     chomp $command;
     $prereqs = <PREREQS>;
     chomp $prereqs;
-    $target  = <TARGETS>;
+    $target = <TARGETS>;
     chomp $target;
 }
 close(COMMANDS);
@@ -32,7 +32,16 @@ close(PREREQS);
 close(TARGETS);
 
 my $run_command = 0;
+
 foreach my $prereq ( split( /\s+/, $prereqs ) ) {
+
+    # run the command if the target does not exist
+    unless ( -e $target ) {
+        $run_command = 1;
+        last;
+    }
+
+    # otherwise check each prereq whether it is older than target
     if ( ( stat($prereq) )[9] > ( stat($target) )[9] ) {
         $run_command = 1;
     }
