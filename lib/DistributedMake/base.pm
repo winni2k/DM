@@ -363,6 +363,7 @@ sub startJobArray {
         prereqsFile  => undef,
         target       => undef,
         globalTmpDir => undef,
+        name         => undef,
         %overrides,
     );
 
@@ -378,6 +379,7 @@ sub startJobArray {
 "startJobArray needs a global temporary directory to be specified with globalTmpDir and for that direcory to exist"
       unless defined $args{globalTmpDir} && -d $args{globalTmpDir};
 
+    # definition of jobArrayObject
     my $jobArrayObject = {
         fileHandles => {},
         files       => {},
@@ -388,6 +390,9 @@ sub startJobArray {
         # lists of all targets and prereqs of all rules added to job array
         arrayTargets => [],
         arrayPrereqs => [],
+
+        # name of job array
+        name => $args{name},
     };
 
     ## initialize files to hold targets, commands and prereqs for job array
@@ -465,13 +470,13 @@ sub addJobArrayRule {
         # need to make sure target directory exists
         my @precmds;
         foreach my $target (@targets) {
-            my $rootdir = dirname($target);
+            my $rootdir  = dirname($target);
             my $mkdircmd = "test \"! -d $rootdir\" && mkdir -p $rootdir";
             push( @precmds, $mkdircmd );
         }
 
         print { $self->{currentJobArrayObject}->{fileHandles}->{commands} }
-          join(q/ && /, (@precmds, $args{command})) . "\n";
+          join( q/ && /, ( @precmds, $args{command} ) ) . "\n";
 
         # PREREQS - also add prereqs to job array prereqs file
         print { $self->{currentJobArrayObject}->{fileHandles}->{prereqs} }
@@ -510,14 +515,16 @@ sub endJobArray {
               . $self->{currentJobArrayObject}->{files}->{targets} . ' -p '
               . $self->{currentJobArrayObject}->{files}->{prereqs} . ' -c '
               . $self->{currentJobArrayObject}->{files}->{commands}
-              . " && touch $target"
+              . " && touch $target",
+            name => $self->{currentJobArrayObject}->{name}
         );
     }
     else {
         $self->addRule(
             $self->{currentJobArrayObject}->{target},
             $self->{currentJobArrayObject}->{arrayTargets},
-            "touch $target"
+            "touch $target",
+            name => $self->{currentJobArrayObject}->{name}
         );
 
     }
