@@ -151,7 +151,7 @@ sub addRule {
     my %bja = (
         'cluster'     => $self->{'cluster'},
         'queue'       => $self->{'queue'},
-        'PE'          => self->{'PE'},
+        'PE'          => $self->{'PE'},
         'memLimit'    => $self->{'memLimit'},
         'rerunnable'  => $self->{'rerunnable'},
         'name'        => $self->{'name'},
