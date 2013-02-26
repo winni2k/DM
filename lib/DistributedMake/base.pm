@@ -436,8 +436,8 @@ sub addJobArrayRule {
     }
 
     # keep track of all rule targets
-    my $target =
-      ref( $args{target} ) eq 'ARRAY' ? $args{target}->[0] : $args{target};
+    my @targets =
+      ref( $args{target} ) eq 'ARRAY' ? @{ $args{target} } : ( $args{target} );
     push @{ $self->{currentJobArrayObject}->{arrayTargets} }, $target;
 
     # keep track of all rule prereqs
@@ -452,18 +452,26 @@ sub addJobArrayRule {
     unless ( $self->{cluster} eq 'SGE'
         || ( defined $args{cluster} && $args{cluster} eq 'SGE' ) )
     {
-        $self->addRule( $args{target}, $args{prereqs}, $args{command}, %args );
+        $self->addRule( \@targets, $args{prereqs}, $args{command}, %args );
     }
     else {
 
         ### Add target, prereqs and command to respective files
         # TARGET
         print { $self->{currentJobArrayObject}->{fileHandles}->{targets} }
-          $target . "\n";
+          $targets[0] . "\n";
 
         # COMMAND
+        # need to make sure target directory exists
+        my @precmds;
+        foreach my $target (@targets) {
+            my $rootdir = dirname($target);
+            my $mkdircmd = "\@test \"! -d $rootdir\" && mkdir -p $rootdir";
+            push( @precmds, $mkdircmd );
+        }
+
         print { $self->{currentJobArrayObject}->{fileHandles}->{commands} }
-          $args{command} . "\n";
+          join(q/ && /, (@precmds, $args{command})) . "\n";
 
         # PREREQS - also add prereqs to job array prereqs file
         print { $self->{currentJobArrayObject}->{fileHandles}->{prereqs} }
