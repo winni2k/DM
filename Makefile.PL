@@ -32,5 +32,5 @@ WriteMakefile(
     },
     EXE_FILES => [qw(scripts/sge_job_array.pl)],
     dist      => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', PREOP => $preop, },
-    clean => { FILES => 'DistributedMake-base-*' },
+    clean => { FILES => 'DM-*' },
 );
