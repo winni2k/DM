@@ -1,8 +1,9 @@
 package DM;
-use version 0.77; our $VERSION = qv('0.2');
-
-use 5.006;
 use strict;
+
+use version 0.77; 
+our $VERSION = qv('0.2');
+use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;
@@ -21,17 +22,20 @@ DM - Distributed Make: A perl module for running pipelines
 use DM 0.002;
 
 # create a DM object
+
 my $dm = DM->new(
     dryRun => 0,
     numJobs => 5
 )
 
 # add rule with target, prerequisite, and command to use to update the target
+
 $dm->addRule( 'targetFile', 'prerequisiteFile', 'touch targetFile' );
 
 # add more rules ...
 
 # executed the pipeline 
+
 $dm->execute();
 
 =head1 DESCRIPTION
