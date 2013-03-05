@@ -11,11 +11,9 @@ my $preop =
   . 'pod2html README.pod | tee $(DISTVNAME)/README.html > README.html';
 
 WriteMakefile(
-    NAME   => 'DM',
-    AUTHOR => [
-        q{Kiran V Garimella <kiran@well.ox.ac.uk>},
-        q{Warren W. Kretzschmar <warren.kretzschmar@well.ox.ac.uk>}
-    ],
+    NAME => 'DM',
+    AUTHOR =>
+q{Kiran V Garimella <kiran@well.ox.ac.uk> and Warren W. Kretzschmar <warren.kretzschmar@well.ox.ac.uk>},
     VERSION_FROM  => 'lib/DM.pm',
     ABSTRACT_FROM => 'lib/DM.pm',
     ( qv($ExtUtils::MakeMaker::VERSION) >= 6.3002

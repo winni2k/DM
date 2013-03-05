@@ -1,11 +1,11 @@
 #!perl
 use Test::More tests => 3;
 use Test::Files;
-use DistributedMake::base 0.001003;
+use DM 0.001003;
 
 my $test_dir = 't/50-job_array.t.tmp';
 
-my $dm = DistributedMake::base->new(
+my $dm = DM->new(
     "dryRun"   => 1,
     "numJobs"  => 1,
     outputFile => "$test_dir/output.log",

@@ -1,7 +1,7 @@
 #!perl
 use Test::More tests => 2;
 use File::Compare;
-use DistributedMake::base;
+use DM;
 
 my $test_dir = 't/10-dollar_sign_conversion.tmp';
 
@@ -10,7 +10,7 @@ my $test_dir = 't/10-dollar_sign_conversion.tmp';
 my $target1 = init_testfile( $test_dir . '/target1' );
 
 my $target1_expected = "$test_dir/target1.expected";
-my $dm = DistributedMake::base->new( dryRun => 0 );
+my $dm = DM->new( dryRun => 0 );
 $dm->addRule( $target1, "", 'echo "hello world" > ' . $target1, cluster=>'localhost' );
 $dm->execute();
 
@@ -25,7 +25,7 @@ my $target2 = init_testfile("$test_dir/target2");
 my $target2_expected = "$target2.expected";
 my $target2_command  = q/perl -e '$L = "hello world 2\n"; print $L'>/.$target2;
 
-$dm = DistributedMake::base->new( dryRun => 0 );
+$dm = DM->new( dryRun => 0 );
 $dm->addRule( $target2, "", $target2_command , cluster=>'localhost');
 $dm->execute();
 

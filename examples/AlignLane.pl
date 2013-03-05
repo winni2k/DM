@@ -2,12 +2,12 @@
 
 use strict;
 use StingArgs;
-use DistributedMake;
+use DM;
 use File::Basename;
 
 my %args = &getCommandArguments("FASTQ_END_1" => undef, "FASTQ_END_2" => undef, "REFERENCE" => undef, "BAM_OUT" => undef, "ID" => undef, "SM" => undef, "LB" => undef, "PL" => undef, "CN" => undef, "DRY_RUN" => 1, "NUM_JOBS" => "");
 
-my $dm = new DistributedMake("dryRun" => $args{'DRY_RUN'}, "numJobs" => $args{'NUM_JOBS'});
+my $dm = new DM("dryRun" => $args{'DRY_RUN'}, "numJobs" => $args{'NUM_JOBS'});
 
 (my $intermediateDir = &dirname($args{'BAM_OUT'}) . "/.intermediate/" . &basename($args{'BAM_OUT'})) =~ s/.bam$//;
 
