@@ -10,21 +10,22 @@ my $targets_file = defined $args{t}
 my $prereqs_file = defined $args{p}
   && -e $args{p} ? $args{p} : die "prereqs file needs to be defined";
 
+## Please see file perltidy.ERR
 # open file handle for commands file
-open COMMANDS, "<$commands_file" or die "Couldn't open $commands_file: $!";
-open TARGETS,  "<$targets_file"  or die "Couldn't open $targets_file: $!";
-open PREREQS,  "<$prereqs_file"  or die "Couldn't open $prereqs_file: $!";
+open $COMMANDS, '<', $commands_file or die " Couldn't open $commands_file: $! ";
+open $TARGETS,  '<', $targets_file  or die "Couldn't open $targets_file: $!";
+open $PREREQS,  '<', $prereqs_file  or die "Couldn't open $prereqs_file: $! ";
 
 # seek to appropriate position given SGE_TASK_ID
 my $command;
 my $prereqs;
 my $target;
 for ( 1 .. $ENV{SGE_TASK_ID} ) {
-    $command = <COMMANDS>;
+    $command = <$COMMANDS>;
     chomp $command;
-    $prereqs = <PREREQS>;
+    $prereqs = <$PREREQS>;
     chomp $prereqs;
-    $target = <TARGETS>;
+    $target = <$TARGETS>;
     chomp $target;
 }
 close(COMMANDS);
