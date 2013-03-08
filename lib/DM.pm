@@ -1,8 +1,8 @@
 package DM;
 use strict;
 
-use version 0.77; 
-our $VERSION = qv('0.2.2');
+use version 0.77;
+our $VERSION = qv('0.2.3');
 use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
@@ -15,7 +15,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-0.2.2
+0.2.3
 
 =head1 SYNOPSIS
 
@@ -318,13 +318,19 @@ sub addRule {
         $bja{'name'} = &basename($name);
     }
 
-    my $memRequest = 1.5 * $bja{'memLimit'};
+    # -l is not supported on all SGE systems
+    my $memRequest = $bja{'memRequest'};
+
     my $cmdprefix  = "";
     my $cmdpostfix = "";
 
     if ( $bja{'cluster'} eq 'SGE' ) {
-        $cmdprefix =
-"qsub -sync y -cwd -V -b yes -j y -l h_vmem=${memRequest}G -o $bja{'outputFile'} -N $bja{'name'}";
+        $cmdprefix = "qsub -sync y -cwd -V -b yes -j y"
+          . (
+            defined $memRequest
+            ? qq/ -l h_vmem=${memRequest}G/
+            : q//
+          ) . " -o $bja{'outputFile'} -N $bja{'name'}";
         $cmdprefix .=
           ( defined( $bja{'projectName'} ) )
           ? " -P $bja{'projectName'}"
@@ -714,8 +720,6 @@ sub _check_arg_consistency {
         }
     }
 }
-
-
 
 =head1 AUTHORS
 
