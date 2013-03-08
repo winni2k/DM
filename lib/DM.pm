@@ -2,7 +2,7 @@ package DM;
 use strict;
 
 use version 0.77; 
-our $VERSION = qv('0.2.1');
+our $VERSION = qv('0.2.2');
 use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
@@ -15,7 +15,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-0.2.1
+0.2.2
 
 =head1 SYNOPSIS
 
