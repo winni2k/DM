@@ -2,7 +2,7 @@ package DM;
 use strict;
 
 use version 0.77;
-our $VERSION = qv('0.2.3');
+our $VERSION = qv('0.2.4');
 use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
