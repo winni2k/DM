@@ -215,9 +215,9 @@ sub new {
 
         if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
 
-  #    elsif ( -e $pbsdsh )      { $self{'cluster'} = 'PBS'; } not supported yet
-        elsif ( -e $bsub ) { $self{'cluster'} = 'LSF'; }
-        else               { $self{'cluster'} = 'localhost'; }
+        elsif ( -e $pbsdsh ) { $self{'cluster'} = 'PBS'; }
+        elsif ( -e $bsub )   { $self{'cluster'} = 'LSF'; }
+        else                 { $self{'cluster'} = 'localhost'; }
 
     }
 
