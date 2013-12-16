@@ -2,7 +2,7 @@ package DM;
 use strict;
 
 use version 0.77;
-our $VERSION = qv('0.2.4');
+our $VERSION = qv('0.2.5');
 use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
@@ -15,7 +15,12 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-0.2.3
+0.2.5
+
+=head1 CHANGES
+
+0.2.5  Mon Dec 16 15:43:58 GMT 2013
+       Added return of exit status from execute()
 
 =head1 SYNOPSIS
 
@@ -411,7 +416,7 @@ none
 
 =item Returns
 
-none
+exits status. 0 means no problems.
 
 =back
 
@@ -464,7 +469,10 @@ sub execute {
 
     print "$makecmd\n";
     system($makecmd);
+    my $errCode =  $? >> 8;
     print "$makecmd\n";
+
+    return $errCode;
 }
 
 =head1 JOB ARRAY FUNCTIONS
