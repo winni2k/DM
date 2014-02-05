@@ -2,6 +2,11 @@
 
 DistributedMake - a perl library for pipelining with GNU make
 
+## Authorship
+
+The original author of this code is Kiran V Garimella.
+
+The maintainer of this code is Warren W. Kretzschmar.
 
 ## CHANGES
 
@@ -32,3 +37,6 @@ Added support for SGE job arrrays.
 
 First stable version.
 
+## Bug Reports
+
+Please report bugs on GitHub at https://github.com/wkretzsch/DM/issues
