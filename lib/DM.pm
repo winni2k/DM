@@ -2,7 +2,7 @@ package DM;
 use strict;
 
 use version 0.77;
-our $VERSION = qv('0.2.5');
+our $VERSION = qv('0.2.6');
 use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
@@ -15,9 +15,13 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-0.2.5
+0.2.6
 
 =head1 CHANGES
+
+0.2.6  Mon Dec 16 16:22:03 GMT 2013
+       Cluster engines that are not supported are now ignored with an error if their binaries 
+       are found on the system.
 
 0.2.5  Mon Dec 16 15:43:58 GMT 2013
        Added return of exit status from execute()
@@ -189,7 +193,13 @@ sub new {
         'projectName'    => undef,
         'outputFile'     => 'distributedmake.log',
         'extra'          => '',
-        supportedEngines => { SGE => 1, localhost => 1, LSF => 0, PBS => 0 },
+        supportedEngines => {
+            SGE =>
+              { isSupported => 1, bin => q(which sge_qmaster 2>/dev/null) },
+            localhost => { isSupported => 1, bin => q// },
+            LSF       => { isSupported => 0, bin => q(which bsub 2>/dev/null) },
+            PBS => { isSupported => 0, bin => q(which pbsdsh 2>/dev/null) }
+        },
 
         # make options
         'tmpdir'  => '/tmp',
@@ -212,18 +222,34 @@ sub new {
         UNLINK   => $self{'unlink'}
     );
 
-    chomp( my $sge_qmaster = qx(which sge_qmaster 2>/dev/null) );
-    chomp( my $pbsdsh      = qx(which pbsdsh 2>/dev/null) );
-    chomp( my $bsub        = qx(which bsub 2>/dev/null) );
+    # chomp the engine bins
+    map {
+        my $bin = $self{supportedEngines}->{$_}->{bin};
+        $bin = qx/$bin/;
+        chomp $bin;
+        $self{supportedEngines}->{$_}->{bin} = $bin;
+      }
+      sort keys %{ $self{supportedEngines} };
 
+    # try to find an engine that is both supported and that exists
     unless ( defined $self{cluster} ) {
+        for my $engine ( sort keys %{ $self{supportedEngines} } ) {
+            my $bin = $self{supportedEngines}->{$engine}->{bin};
+            if ( defined $bin && -e $bin ) {
+                if ( $self{supportedEngines}->{$engine}->{isSupported} ) {
+                    $self{cluster} = $engine;
+                    last;
+                }
+                else {
+                    carp "[DM] Found unsupported cluster binary: $bin\n";
+                }
+            }
+        }
+    }
 
-        if ( -e $sge_qmaster ) { $self{'cluster'} = 'SGE'; }
-
-        elsif ( -e $pbsdsh ) { $self{'cluster'} = 'PBS'; }
-        elsif ( -e $bsub )   { $self{'cluster'} = 'LSF'; }
-        else                 { $self{'cluster'} = 'localhost'; }
-
+    # otherwise use localhost
+    unless ( defined $self{cluster} ) {
+        $self{cluster} = 'localhost';
     }
 
     bless \%self, $class;
@@ -469,7 +495,7 @@ sub execute {
 
     print "$makecmd\n";
     system($makecmd);
-    my $errCode =  $? >> 8;
+    my $errCode = $? >> 8;
     print "$makecmd\n";
 
     return $errCode;
@@ -514,7 +540,9 @@ sub startJobArray {
 
     # pull object tmp dir if none was passed in
     $args{globalTmpDir} =
-      defined $args{globalTmpDir} ? $args{globalTmpDir} : $self->{globalTmpDir};
+      defined $args{globalTmpDir}
+      ? $args{globalTmpDir}
+      : $self->{globalTmpDir};
 
     # make sure globalTmpDir is defined and exists
     die
@@ -597,7 +625,9 @@ sub addJobArrayRule {
 
     # keep track of all rule targets
     my @targets =
-      ref( $args{target} ) eq 'ARRAY' ? @{ $args{target} } : ( $args{target} );
+      ref( $args{target} ) eq 'ARRAY'
+      ? @{ $args{target} }
+      : ( $args{target} );
     push @{ $self->{currentJobArrayObject}->{arrayTargets} }, $targets[0];
 
     # keep track of all rule prereqs
@@ -714,7 +744,8 @@ sub _check_arg_consistency {
     my $isSupported = 0;
     foreach my $engine ( sort keys %{ $bja{supportedEngines} } ) {
         $isSupported = 1
-          if ( $bja{cluster} eq $engine && $bja{supportedEngines}->{$engine} );
+          if ( $bja{cluster} eq $engine
+            && $bja{supportedEngines}->{$engine}->{isSupported} );
     }
     croak "$bja{cluster} is not a supported engine" unless $isSupported;
 
@@ -724,7 +755,7 @@ sub _check_arg_consistency {
         $error .= "cluster is not 'localhost'\n\t";
 
         unless ( defined $bja{PE}->{name} || defined $bja{queue} ) {
-            carp $error. "either 'queue' or 'PE' or both need to be defined";
+            carp $error . "either 'queue' or 'PE' or both need to be defined";
         }
     }
 }
