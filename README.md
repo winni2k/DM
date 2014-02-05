@@ -30,6 +30,18 @@ DM-0.2.6). Then follow standard CPAN procedures:
     make test
     make install
 
+## Documentation
+
+Documentation on how to use DM can be found inside the DM library 
+under lib/DM.pm. On most systems it is possible to use perldoc to
+display the documentation:
+
+    perldoc lib/DM.pm
+
+After installation the man page is available through:
+
+    man DM
+
 ## Changes
 
 0.2.6  Mon Dec 16 16:22:03 GMT 2013
