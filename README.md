@@ -8,7 +8,29 @@ The original author of this code is Kiran V Garimella.
 
 The maintainer of this code is Warren W. Kretzschmar.
 
-## CHANGES
+## Obtaining this code
+
+A copy of this code can be found at https://github.com/wkretzsch/DM
+
+## Installation
+
+### Using dzilla
+
+    dzil install
+
+### Using GNU make
+
+Download a release version from the 'release' branch on github (for
+example v0.2.6).
+Enter the subdirectory with the version's name (for example
+DM-0.2.6). Then follow standard CPAN procedures:
+
+    perl Makefile.PL
+    make
+    make test
+    make install
+
+## Changes
 
 0.2.6  Mon Dec 16 16:22:03 GMT 2013
 
