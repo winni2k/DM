@@ -5,6 +5,15 @@ DistributedMake - a perl library for pipelining with GNU make
 
 ## CHANGES
 
+0.2.6  Mon Dec 16 16:22:03 GMT 2013
+
+Cluster engines that are not supported are now ignored with an
+error if their binaries are found on the system.
+
+0.2.5  Mon Dec 16 15:43:58 GMT 2013
+
+Added return of exit status from execute().
+
 0.2.1   Tue  5 Mar 2013 17:08:54 GMT
 
 Fixed bug in dist.ini where files in the scripts directory were not
