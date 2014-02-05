@@ -1,13 +1,9 @@
-DM
-==
+# DM
 
 DistributedMake - a perl library for pipelining with GNU make
 
 
-CHANGES
--------
-
-# Revision history for DM
+## CHANGES
 
 0.2.1   Tue  5 Mar 2013 17:08:54 GMT
 
