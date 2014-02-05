@@ -20,8 +20,8 @@ A copy of this code can be found at https://github.com/wkretzsch/DM
 
 ### Using GNU make
 
-Download a release version from the 'release' branch on github (for
-example v0.2.6).
+Download a *-CPAN release from the releases page on github (for
+example v0.2.6-CPAN).
 Enter the subdirectory with the version's name (for example
 DM-0.2.6). Then follow standard CPAN procedures:
 
