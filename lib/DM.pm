@@ -2,7 +2,7 @@ package DM;
 use strict;
 
 use version 0.77;
-our $VERSION = qv('0.2.6');
+our $VERSION = qv('0.2.7');
 use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
@@ -15,13 +15,18 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-0.2.6
+0.2.7
 
 =head1 CHANGES
 
+0.2.7  Mon Feb 17 22:34:14 GMT 2014
+       Added option to turn of post command touching of targets using the 
+       postCmdTouch batch job override
+
+
 0.2.6  Mon Dec 16 16:22:03 GMT 2013
-       Cluster engines that are not supported are now ignored with an error if their binaries 
-       are found on the system.
+       Cluster engines that are not supported are now ignored with an error if their
+       binaries are found on the system.
 
 0.2.5  Mon Dec 16 15:43:58 GMT 2013
        Added return of exit status from execute()
@@ -171,10 +176,13 @@ sub new {
     my %self = (
 
         # Make options
-        'dryRun'  => 1, # show what will be run, but don't actually run anything
-        'numJobs' => 1
-        , # maximum number of jobs to run, or "" for maximum concurrency permitted by dependencies
-          # Applicable to queue and non-queue situations
+        'dryRun' => 1,  # show what will be run, but don't actually run anything
+
+        # maximum number of jobs to run, or "" for maximum concurrency
+        # permitted by dependencies
+        'numJobs' => 1,
+
+        # Applicable to queue and non-queue situations
         'keepGoing'      => 0,
         'alwaysMake'     => 0,
         'debugging'      => 0,
@@ -211,6 +219,9 @@ sub new {
         # started but not ended
         'currentJobArrayObject' => undef,
         'globalTmpDir'          => undef,    # necessary for running job arrays
+
+        # don't touch the target after creation (turn off for symbolic links)
+        postCmdTouch => 1,
 
         ## other attributes...
         %args,
@@ -303,6 +314,7 @@ sub addRule {
         'projectName' => $self->{'projectName'},
         'outputFile'  => $self->{'outputFile'},
         'extra'       => $self->{'extra'},
+        postCmdTouch  => $self->{postCmdTouch},
         %batchjoboverrides,
     );
 
@@ -414,10 +426,11 @@ sub addRule {
         push( @modcmds, "$cmdprefix   $modcmd   $cmdpostfix" );
     }
 
-# Setup the post-commands (touching output files to make sure the timestamps don't get screwed up by clock skew between cluster nodes).
+    # Setup the post-commands (touching output files to make sure
+    # the timestamps don't get screwed up by clock skew between cluster nodes).
     my @postcmds;
     foreach my $target (@targets) {
-        push( @postcmds, "\@touch -c $target" );
+        push( @postcmds, "\@touch -c $target" ) if $bja{postCmdTouch};
     }
 
     # Emit the makefile commands
