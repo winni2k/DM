@@ -32,16 +32,18 @@ $dm->addJobArrayRule(
     command => "echo 'hi world 2' > $targets[1]",
     cluster => 'SGE'
 );
+
 $dm->endJobArray();
 
-compare_ok( $jobArrayObject->{files}->{targets},
+compare_ok( $jobArrayObject->targetsFile,
     "$test_dir/targets.expected", "targets file was created correctly" );
-compare_ok( $jobArrayObject->{files}->{prereqs},
+compare_ok( $jobArrayObject->prereqsFile,
     "$test_dir/prereqs.expected", "prereqs file was created correctly" );
-compare_ok( $jobArrayObject->{files}->{commands},
+compare_ok( $jobArrayObject->commandsFile,
     "$test_dir/commands.expected", "commands file was created correctly" );
 
+
+
+
 unlink @prereqs;
-
-
 

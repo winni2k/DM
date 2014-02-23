@@ -2,12 +2,14 @@ package DM;
 use strict;
 
 use version 0.77;
-our $VERSION = qv('0.2.7');
+our $VERSION = qv('0.2.8');
 use 5.006;
 use warnings;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;
 use Carp;
+use DM::JobArray;
+use DM::Job;
 
 =head1 NAME
 
@@ -15,7 +17,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-0.2.7
+0.2.8
 
 =head1 CHANGES
 
@@ -433,14 +435,22 @@ sub addRule {
         push( @postcmds, "\@touch -c $target" ) if $bja{postCmdTouch};
     }
 
-    # Emit the makefile commands
-    print { $self->{'makefile'} } "$targets[0]: "
-      . join( " ",    @dependencies ) . "\n\t"
-      . join( "\n\t", @precmds ) . "\n\t"
+    my $cmd =
+        join( "\n\t", @precmds ) . "\n\t"
       . join( "\n\t", @modcmds ) . "\n\t"
       . join( "\n\t", @postcmds ) . "\n\n";
 
+    # Emit the makefile commands
+    print { $self->{'makefile'} } "$targets[0]: "
+      . join( " ", @dependencies ) . "\n\t"
+      . $cmd;
     push( @{ $self->{'targets'} }, $targets[0] );
+
+    return DM::Job->new(
+        targets => \@targets,
+        prereqs => \@dependencies,
+        command => $cmd
+    );
 }
 
 =head2 execute()
@@ -539,58 +549,18 @@ sub startJobArray {
       if defined $self->{currentJobArrayObject};
 
     my %args = (
-        commandsFile => undef,
-        targetsFile  => undef,
-        prereqsFile  => undef,
         target       => undef,
-        globalTmpDir => undef,
-        name         => undef,
+        globalTmpDir => $self->{globalTmpDir},
+        name         => 'DM::JobArray',
         %overrides,
     );
 
-    die "startJobArray needs a target to be specified"
-      unless defined $args{target};
-
-    # pull object tmp dir if none was passed in
-    $args{globalTmpDir} =
-      defined $args{globalTmpDir}
-      ? $args{globalTmpDir}
-      : $self->{globalTmpDir};
-
-    # make sure globalTmpDir is defined and exists
-    die
-"startJobArray needs a global temporary directory to be specified with globalTmpDir and for that direcory to exist"
-      unless defined $args{globalTmpDir} && -d $args{globalTmpDir};
-
     # definition of jobArrayObject
-    my $jobArrayObject = {
-        fileHandles => {},
-        files       => {},
-
-        # final target to touch when all job array rules completed successfully
-        target => $args{target},
-
-        # lists of all targets and prereqs of all rules added to job array
-        arrayTargets => [],
-        arrayPrereqs => [],
-
-        # name of job array
-        name => $args{name},
-    };
-
-    ## initialize files to hold targets, commands and prereqs for job array
-    # open file handles
-    for my $name (qw(commands targets prereqs)) {
-        (
-            $jobArrayObject->{fileHandles}->{$name},
-            $jobArrayObject->{files}->{$name}
-          )
-          = tempfile(
-            $name . '_XXXX',
-            DIR    => $args{globalTmpDir},
-            UNLINK => 1
-          );
-    }
+    my $jobArrayObject = DM::JobArray->new(
+        globalTmpDir => $args{globalTmpDir},
+        name         => $args{name},
+        target       => $args{target}
+    );
 
     # save new object
     $self->{currentJobArrayObject} = $jobArrayObject;
@@ -611,6 +581,12 @@ addJobArrayRule(
     command => $mycommand 
 );
 
+or as a list
+addJobArrayRule( 
+    $mytarget, 
+    \@myprereqs, 
+    $mycommand 
+);
 prereqs may also be a scalar (string).  
 
 The target is only for internal updating by the job array.  The target may not be used as a prerequisite for another rule.  Use the job array target instead.
@@ -624,61 +600,45 @@ none
 sub addJobArrayRule {
     my $self = shift;
 
-    # get input
-    my %args = @_;
+    my %args;
+    my %jobArgs;
 
     # check to make sure startJobArray() has been run
     die "need to run startJobArray() first"
       unless defined $self->{currentJobArrayObject};
 
-    # check required args.
-    foreach my $arg (qw/target prereqs command/) {
-        die "need to define $arg" unless defined $args{$arg};
+    # allow three arg input
+    if ( @_ == 3 ) {
+        for my $arg (qw/target prereqs command/) {
+            $jobArgs{$arg} = shift;
+        }
     }
 
-    # keep track of all rule targets
-    my @targets =
-      ref( $args{target} ) eq 'ARRAY'
-      ? @{ $args{target} }
-      : ( $args{target} );
-    push @{ $self->{currentJobArrayObject}->{arrayTargets} }, $targets[0];
+    # otherwise check required args.
+    else {
+        %args = @_;
+        foreach my $arg (qw/target prereqs command/) {
+            croak "need to define $arg" unless defined $args{$arg};
+            $jobArgs{$arg} = delete $args{$arg};
+        }
+    }
 
-    # keep track of all rule prereqs
-    my @prereqs = (
-        ref( $args{prereqs} ) eq 'ARRAY'
-        ? @{ $args{prereqs} }
-        : $args{prereqs}
+    # parse job args by creating a job object
+    my $job = DM::Job->new(
+        targets => $jobArgs{target},
+        prereqs => $jobArgs{prereqs},
+        command => $jobArgs{command}
     );
-    push @{ $self->{currentJobArrayObject}->{arrayPrereqs} }, @prereqs;
 
     # just use addRule unless we are in an SGE cluster
     unless ( $self->{cluster} eq 'SGE'
         || ( defined $args{cluster} && $args{cluster} eq 'SGE' ) )
     {
-        $self->addRule( \@targets, $args{prereqs}, $args{command}, %args );
+        $self->{currentJobArrayObject}->addJob(
+            $self->addRule( $job->targets, $job->prereqs, $job->command ) );
     }
     else {
-
-        ### Add target, prereqs and command to respective files
-        # TARGET
-        print { $self->{currentJobArrayObject}->{fileHandles}->{targets} }
-          $targets[0] . "\n";
-
-        # COMMAND
-        # need to make sure target directory exists
-        my @precmds;
-        foreach my $target (@targets) {
-            my $rootdir  = dirname($target);
-            my $mkdircmd = "test \"! -d $rootdir\" && mkdir -p $rootdir";
-            push( @precmds, $mkdircmd );
-        }
-
-        print { $self->{currentJobArrayObject}->{fileHandles}->{commands} }
-          join( q/ && /, ( @precmds, $args{command} ) ) . "\n";
-
-        # PREREQS - also add prereqs to job array prereqs file
-        print { $self->{currentJobArrayObject}->{fileHandles}->{prereqs} }
-          join( q/ /, @prereqs ) . "\n";
+        $self->{currentJobArrayObject}->addSGEJob($job);
     }
 }
 
@@ -701,37 +661,37 @@ sub endJobArray {
     my $self = shift;
 
     # close all file handles
-    map { close( $self->{currentJobArrayObject}->{fileHandles}->{$_} ) }
-      keys %{ $self->{currentJobArrayObject}->{fileHandles} };
+    #    $self->{currentJobArrayObject}->closeFileHandles;
 
     # determine how many tasks to kick off in job array
-    my $arrayTasks = @{ $self->{currentJobArrayObject}->{arrayTargets} };
+    my $arrayTasks = @{ $self->{currentJobArrayObject}->arrayTargets };
 
     # add job array rule
     #  makes sure target is touched when everything ran through successfully
-    my $target = $self->{currentJobArrayObject}->{target};
+    my $target = $self->{currentJobArrayObject}->target;
     if ( $self->{cluster} eq 'SGE' ) {
         $self->addRule(
-            $self->{currentJobArrayObject}->{target},
-            $self->{currentJobArrayObject}->{arrayPrereqs},
+            $self->{currentJobArrayObject}->target,
+            $self->{currentJobArrayObject}->arrayPrereqs,
             " -t 1-$arrayTasks:1  sge_job_array.pl  -t "
-              . $self->{currentJobArrayObject}->{files}->{targets} . ' -p '
-              . $self->{currentJobArrayObject}->{files}->{prereqs} . ' -c '
-              . $self->{currentJobArrayObject}->{files}->{commands}
+              . $self->{currentJobArrayObject}->targetsFile . ' -p '
+              . $self->{currentJobArrayObject}->prereqsFile . ' -c '
+              . $self->{currentJobArrayObject}->commandsFile
               . " && touch $target",
-            name => $self->{currentJobArrayObject}->{name}
+            name => $self->{currentJobArrayObject}->name
         );
     }
     else {
         $self->addRule(
-            $self->{currentJobArrayObject}->{target},
-            $self->{currentJobArrayObject}->{arrayTargets},
+            $self->{currentJobArrayObject}->target,
+            $self->{currentJobArrayObject}->arrayTargets,
             "touch $target",
-            name => $self->{currentJobArrayObject}->{name}
+            name => $self->{currentJobArrayObject}->name
         );
 
     }
 
+    $self->{currentJobArrayObject}->flushFiles;
     $self->{currentJobArrayObject} = undef;
 }
 
