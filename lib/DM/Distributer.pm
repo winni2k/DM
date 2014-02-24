@@ -30,9 +30,6 @@ has outputFile =>
 has rerunnable => ( is => 'rw', isa => 'Bool', default => 0 );
 has extra      => ( is => 'rw', isa => 'Str',  default => q// );
 
-# don't touch the target after creation (turn off for symbolic links)
-has postCmdTouch => ( is => 'rw', isa => 'Bool', default => 1 );
-
 # parallel environment
 has PE => (
     is  => 'rw',
@@ -151,7 +148,7 @@ sub _post_commands {
     my $self = shift;
     my @postcmds;
     foreach my $target ( @{ $self->job->targets } ) {
-        push( @postcmds, "\@touch -c $target" ) if $self->postCmdTouch;
+        push( @postcmds, "\@touch -c $target" )
     }
     return \@postcmds;
 }
