@@ -22,7 +22,7 @@ isa_ok( $job, 'DM::Job' );
 
 # testing DM::Distributer method loading
 my $dd = DM::Distributer->new();
-can_ok($dd, qw/engineName memRequest outputFile rerunnable extra postCmdTouch PE job _supportedEngines/);
+can_ok($dd, qw/engineName memRequest outputFile rerunnable extra PE job _supportedEngines/);
 isa_ok($dd, 'DM::Distributer');
 
 # testing DM::JobArray method loading

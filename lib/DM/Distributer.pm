@@ -6,6 +6,7 @@ use namespace::autoclean;
 use DM::DistributeEngine;
 use Carp;
 use DM::TypeDefs;
+use File::Basename;
 
 # init args
 has engineName =>
