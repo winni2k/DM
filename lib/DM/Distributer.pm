@@ -3,10 +3,11 @@ package DM::Distributer;
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
-use DM::DistributeEngine;
 use Carp;
-use DM::TypeDefs;
 use File::Basename;
+use DM::DistributeEngine;
+use DM::TypeDefs;
+use DM::WrapCmd;
 
 # init args
 has engineName =>
@@ -18,9 +19,9 @@ for my $name (qw/queue projectName/) {
     has $name => ( is => 'rw', isa => 'Str', default => '' );
 }
 
-sub jobName{
+sub jobName {
     my $self = shift;
-    if(@_){
+    if (@_) {
         return $self->job->name(@_);
     }
     return $self->job->name;
@@ -28,8 +29,9 @@ sub jobName{
 
 has outputFile =>
   ( is => 'rw', isa => 'Str', default => 'distributedmake.log' );
-has rerunnable => ( is => 'rw', isa => 'Bool', default => 0 );
-has extra      => ( is => 'rw', isa => 'Str',  default => q// );
+has rerunnable   => ( is => 'rw', isa => 'Bool',       default => 0 );
+has extra        => ( is => 'rw', isa => 'Str',        default => q// );
+has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
 # parallel environment
 has PE => (
@@ -57,14 +59,33 @@ has _supportedEngines => (
     init_arg => undef,
 );
 
+has _cmdWrapper => (
+    is       => 'ro',
+    isa      => 'DM::WrapCmd',
+    builder  => '_build_cmdWrapper',
+    init_arg => undef,
+    lazy     => 1
+);
 
-sub cmdPostfix {
+sub finalize {
+    my $self = shift;
+    if($self->engineName ne 'localhost'){
+        $self->_cmdWrapper->finalize;
+    }
+}
+
+sub _build_cmdWrapper {
+    my $self = shift;
+    return DM::WrapCmd->new( globalTmpDir => $self->globalTmpDir );
+}
+
+sub _cmdPostfix {
     my $self = shift;
 
     return "| tee -a " . $self->outputFile if $self->engineName eq 'localhost';
 }
 
-sub cmdPrefix {
+sub _cmdPrefix {
     my $self = shift;
 
     my $cmdprefix = "";
@@ -97,7 +118,14 @@ sub cmdPrefix {
     return $cmdprefix;
 }
 
-sub jobAsTxt {
+=head 2 jobAsMake()
+
+This method returns a string that can be directly pasted into a make file to 
+represent a single job.  Includes target, prereqs and commands.
+
+=cut
+
+sub jobAsMake {
     my $self = shift;
     my $job  = $self->job;
 
@@ -111,9 +139,17 @@ sub jobAsTxt {
 
     return
         $job->target . q/: /
-      . join( " ", @{ $job->prereqs } ) . "\n\t"
+      . join( " ",    @{ $job->prereqs } ) . "\n\t"
       . join( "\n\t", @{ $job->commands } ) . "\n\n";
 }
+
+=head 2 _mod_commands()
+
+This method modifies the commands depending on the engine so that they are ready 
+to be written to a make file.  Here is where commands are passed to the wrapCommand object
+if the engine is not 'localhost'.
+
+=cut
 
 sub _mod_commands {
     my $self = shift;
@@ -125,19 +161,22 @@ sub _mod_commands {
         # protect single quotes if running on SGE
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
-        if ( $self->engineName eq q/SGE/ ) {
-            $modcmd =~ s/'/"'/g;
-            $modcmd =~ s/'/'"/g;
-            $modcmd =~ s/\$/\$\$/g;
-        }
+        #        if ( $self->engineName eq q/SGE/ ) {
+        #            $modcmd =~ s/'/"'/g;
+        #            $modcmd =~ s/'/'"/g;
+        #            $modcmd =~ s/\$/\$\$/g;
+        #        }
 
         # protect $ signs from make by turning them into $$
         if ( $self->engineName eq q/localhost/ ) {
             $modcmd =~ s/\$/\$\$/g;
         }
+        else {
+            $modcmd = $self->_cmdWrapper->wrapCmd($modcmd);
+        }
 
         push( @modcmds,
-            join( '  ', ( $self->cmdPrefix, $modcmd, $self->cmdPostfix ) ) );
+            join( '  ', ( $self->_cmdPrefix, $modcmd, $self->_cmdPostfix ) ) );
     }
 
     return \@modcmds;
@@ -149,7 +188,7 @@ sub _post_commands {
     my $self = shift;
     my @postcmds;
     foreach my $target ( @{ $self->job->targets } ) {
-        push( @postcmds, "\@touch -c $target" )
+        push( @postcmds, "\@touch -c $target" );
     }
     return \@postcmds;
 }

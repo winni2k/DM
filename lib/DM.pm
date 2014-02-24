@@ -208,7 +208,13 @@ has engineArgs =>
 
 sub _build_distributer {
     my $self = shift;
-    return DM::Distributer->new( %{ $self->engineArgs } );
+    my $dd = DM::Distributer->new( %{ $self->engineArgs }, globalTmpDir=>$self->globalTmpDir );
+    unless ( $dd->engineName eq 'localhost' ) {
+        croak
+          "[DM] need to define globalTmpDir if not running in localhost mode"
+          unless defined $self->globalTmpDir;
+    }
+    return $dd;
 }
 
 has outputFile => ( is => 'rw', isa => 'Str' );
@@ -226,19 +232,7 @@ has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
 # started but not ended
 has _currentJA => ( is => 'rw', isa => 'Maybe[DM::JobArray]', init_arg => undef, default=>undef );
 
-has globalTmpDir => ( is => 'rw', isa => 'Maybe[Str]', default => undef, lazy => 1 );
-
-around globalTmpDir => sub {
-    my $orig = shift;
-    my $self = shift;
-    return $self->$orig(@_) if @_;
-
-    unless ( $self->engineName eq 'localhost' ) {
-        croak
-          "[DM] need to define globalTmpDir if not running in localhost mode"
-          unless defined $self->$orig;
-    }
-};
+has globalTmpDir => ( is => 'rw', isa => 'Maybe[Str]', default => undef);
 
 has _makefile => (
     is       => 'ro',
@@ -320,7 +314,7 @@ sub addRule {
     }
 
     # Emit the makefile commands
-    print { $self->_makefile } $self->_engine->jobAsTxt;
+    print { $self->_makefile } $self->_engine->jobAsMake;
 
     push( @{ $self->targets }, $self->_engine->job->target );
 
@@ -395,6 +389,7 @@ sub execute {
       . " $makeargs{target}";
 
     $self->_makefile->flush;
+    $self->_engine->finalize;
     print "$makecmd\n";
     system($makecmd);
     my $errCode = $? >> 8;
