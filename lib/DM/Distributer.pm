@@ -6,7 +6,6 @@ use namespace::autoclean;
 use DM::DistributeEngine;
 use Carp;
 use DM::TypeDefs;
-use File::Basename;
 
 # init args
 has engineName =>
@@ -14,8 +13,16 @@ has engineName =>
 has memRequest => ( is => 'rw', isa => 'DM::PositiveNum' );
 
 # Cluster engine options
-for my $name (qw/queue projectName jobName/) {
+for my $name (qw/queue projectName/) {
     has $name => ( is => 'rw', isa => 'Str', default => '' );
+}
+
+sub jobName{
+    my $self = shift;
+    if(@_){
+        return $self->job->name(@_);
+    }
+    return $self->job->name;
 }
 
 has outputFile =>
@@ -52,30 +59,6 @@ has _supportedEngines => (
     init_arg => undef,
 );
 
-around job => sub {
-    my $orig = shift;
-    my $self = shift;
-
-    return $self->$orig unless @_;
-    $self->$orig(@_);
-
-    my $name = $self->jobName;
-    if ( $name !~ m/./ ) {
-        $name = "DM_job";
-
-        my $firstcmd = $self->$orig->commands->[0];
-        if ( $firstcmd =~ /java/ && $firstcmd =~ /-jar/ ) {
-            ($name) = $firstcmd =~ /-jar\s+(\S+)\s+/;
-        }
-        else {
-            $firstcmd =~ m/(\S+)/;
-            $name = $1;
-        }
-
-        $name = basename($name);
-    }
-    $self->jobName($name);
-};
 
 sub cmdPostfix {
     my $self = shift;
