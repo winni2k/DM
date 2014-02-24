@@ -10,9 +10,8 @@ subtype 'DM::Job::ArrayRefOfStrs', as 'ArrayRef[Str]';
 
 coerce 'DM::Job::ArrayRefOfStrs', from 'Str', via { [$_] };
 
-has [ 'targets', 'prereqs' ] =>
-  ( is => 'ro', isa => 'DM::Job::ArrayRefOfStrs', required => 1, coerce => 1 );
-has command => ( is => 'ro', isa => 'Str', required => 1 );
+has [ 'targets', 'prereqs', 'commands' ] =>
+  ( is => 'rw', isa => 'DM::Job::ArrayRefOfStrs', required => 1, coerce => 1 );
 
 sub target {
     my $self = shift;

@@ -24,13 +24,13 @@ $dm->addJobArrayRule(
     target  => $targets[0],
     prereqs => $prereqs[0],
     command => "echo 'hi world 1' > $targets[0]",
-    cluster => 'SGE'
+    engineName => 'SGE'
 );
 $dm->addJobArrayRule(
     target  => $targets[1],
     prereqs => [ @prereqs[ 1 .. 2 ] ],
     command => "echo 'hi world 2' > $targets[1]",
-    cluster => 'SGE'
+    engineName => 'SGE'
 );
 
 $dm->endJobArray();

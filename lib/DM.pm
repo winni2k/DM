@@ -1,15 +1,18 @@
 package DM;
-use strict;
+use Moose;
+use MooseX::StrictConstructor;
+use namespace::autoclean;
 
 use version 0.77;
 our $VERSION = qv('0.2.8');
 use 5.006;
-use warnings;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;
 use Carp;
 use DM::JobArray;
 use DM::Job;
+use DM::Distributer;
+use DM::TypeDefs;
 
 =head1 NAME
 
@@ -172,105 +175,90 @@ DM object
 
 =cut
 
-sub new {
-    my ( $class, %args ) = @_;
+# Input Variables
 
-    my %self = (
+### make related options
+has dryRun => ( is => 'ro', isa => 'Bool', default => 1 );
 
-        # Make options
-        'dryRun' => 1,  # show what will be run, but don't actually run anything
+# maximum number of jobs to run, or 0 for maximum concurrency
+# permitted by dependencies
+has numJobs => ( is => 'ro', isa => 'DM::PositiveInt', default => 1 );
 
-        # maximum number of jobs to run, or "" for maximum concurrency
-        # permitted by dependencies
-        'numJobs' => 1,
+# Applicable to queue and non-queue situations
+for my $name (
+    qw/keepGoing alwaysMake debugging ignoreErrors printDirectory touch/)
+{
+    has $name => ( is => 'ro', isa => 'Bool', default => 0 );
+}
 
-        # Applicable to queue and non-queue situations
-        'keepGoing'      => 0,
-        'alwaysMake'     => 0,
-        'debugging'      => 0,
-        'ignoreErrors'   => 0,
-        'printDirectory' => 0,
-        'touch'          => 0,
-        'unlink'         => 1,    # 0 = don't clean tmp file
+# 0 = don't clean tmp file
+has unlinkTmp => ( is => 'ro', isa => 'Bool', default => 1 );
 
-        # Cluster engine options
-        'queue'    => undef,
-        'cluster'  => undef,
-        'PE'       => { name => undef, range => undef },  # parallel environment
-        'memLimit' => 4,                                  # in gigabytes
-        'rerunnable'     => 0,
-        'name'           => undef,
-        'projectName'    => undef,
-        'outputFile'     => 'distributedmake.log',
-        'extra'          => '',
-        supportedEngines => {
-            SGE =>
-              { isSupported => 1, bin => q(which sge_qmaster 2>/dev/null) },
-            localhost => { isSupported => 1, bin => q// },
-            LSF       => { isSupported => 0, bin => q(which bsub 2>/dev/null) },
-            PBS => { isSupported => 0, bin => q(which pbsdsh 2>/dev/null) }
-        },
+has _engine => (
+    is       => 'ro',
+    isa      => 'DM::Distributer',
+    lazy     => 1,
+    init_arg => undef,
+    builder  => '_build_distributer',
+);
 
-        # make options
-        'tmpdir'  => '/tmp',
-        'target'  => 'all',
-        'targets' => [],
+# use engineArgs to override DM::Distributer arguments
+has engineArgs =>
+  ( is => 'ro', isa => 'HashRef', lazy => 1, default => sub { {} } );
 
-        # job array related information
-        # check for undef to determine if job array has been
-        # started but not ended
-        'currentJobArrayObject' => undef,
-        'globalTmpDir'          => undef,    # necessary for running job arrays
+sub _build_distributer {
+    my $self = shift;
+    return DM::Distributer->new( %{ $self->engineArgs } );
+}
 
-        # don't touch the target after creation (turn off for symbolic links)
-        postCmdTouch => 1,
+has outputFile => ( is => 'rw', isa => 'Str' );
 
-        ## other attributes...
-        %args,
-    );
+# in gigabytes
+has memLimit => ( is => 'rw', isa => 'DM::PositiveNum', default => 4 );
 
-    $self{'makefile'} = new File::Temp(
-        TEMPLATE => "$self{'tmpdir'}/DM_XXXXXX",
+# make options
+has tmpdir  => ( is => 'ro', isa => 'Str',           default => '/tmp' );
+has target  => ( is => 'ro', isa => 'Str',           default => 'all' );
+has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
+
+# job array related information
+# check for undef to determine if job array has been
+# started but not ended
+has _currentJA => ( is => 'rw', isa => 'DM::JobArray', init_arg => undef );
+has globalTmpDir => ( is => 'rw', isa => 'Str', default => undef, lazy => 1 );
+
+around globalTmpDir => sub {
+    my $orig = shift;
+    my $self = shift;
+    return $self->$orig(@_) if @_;
+
+    unless ( $self->engineName eq 'localhost' ) {
+        croak
+          "[DM] need to define globalTmpDir if not running in localhost mode"
+          unless defined $self->$orig;
+    }
+};
+
+has _makefile => (
+    is       => 'ro',
+    isa      => 'File::Temp',
+    init_arg => undef,
+    lazy     => 1,
+    builder  => '_build_makefile'
+);
+
+sub _build_makefile {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => $self->tmpdir . "/DM_XXXXXX",
         SUFFIX   => ".makefile",
-        UNLINK   => $self{'unlink'}
+        UNLINK   => $self->unlinkTmp
     );
+}
 
-    # chomp the engine bins
-    map {
-        my $bin = $self{supportedEngines}->{$_}->{bin};
-        $bin = qx/$bin/;
-        chomp $bin;
-        $self{supportedEngines}->{$_}->{bin} = $bin;
-      }
-      sort keys %{ $self{supportedEngines} };
-
-    # try to find an engine that is both supported and that exists
-    unless ( defined $self{cluster} ) {
-        for my $engine ( sort keys %{ $self{supportedEngines} } ) {
-            my $bin = $self{supportedEngines}->{$engine}->{bin};
-            if ( defined $bin && -e $bin ) {
-                if ( $self{supportedEngines}->{$engine}->{isSupported} ) {
-                    $self{cluster} = $engine;
-                    last;
-                }
-                else {
-                    carp "[DM] Found unsupported cluster binary: $bin\n";
-                }
-            }
-        }
-    }
-
-    # otherwise use localhost
-    unless ( defined $self{cluster} ) {
-        $self{cluster} = 'localhost';
-    }
-
-    bless \%self, $class;
-
-    my $self = \%self;
-    $self->_check_arg_consistency(%self);
-
-    return \%self;
+sub engineName {
+    my $self = shift;
+    return $self->_engine->engineName;
 }
 
 =head2 addRule()
@@ -298,159 +286,49 @@ none
 sub addRule {
     my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) =
       @_;
-    my @targets =
-      ( ref($targetsref) eq 'ARRAY' ) ? @$targetsref : ($targetsref);
-    my @dependencies =
-      ( ref($dependenciesref) eq 'ARRAY' )
-      ? @$dependenciesref
-      : ($dependenciesref);
-    my @cmds = ( ref($cmdsref) eq 'ARRAY' ) ? @$cmdsref : ($cmdsref);
 
-    my %bja = (
-        'cluster'     => $self->{'cluster'},
-        'queue'       => $self->{'queue'},
-        'PE'          => $self->{'PE'},
-        'memLimit'    => $self->{'memLimit'},
-        'rerunnable'  => $self->{'rerunnable'},
-        'name'        => $self->{'name'},
-        'projectName' => $self->{'projectName'},
-        'outputFile'  => $self->{'outputFile'},
-        'extra'       => $self->{'extra'},
-        postCmdTouch  => $self->{postCmdTouch},
-        %batchjoboverrides,
+    my $job = DM::Job->new(
+        targets  => $targetsref,
+        prereqs  => $dependenciesref,
+        commands => $cmdsref
     );
 
-    # we should really be checking arguments in one central place,
-    # instead of ad-hoc throughout the script - winni
-    $self->_check_arg_consistency(%bja);
-
-# Setup the pre-commands (things like pre-making directories that will hold log files and output files)
-    my @precmds;
-    my $logdir = dirname( $bja{'outputFile'} );
-    if ( !-e $logdir ) {
-        my $mklogdircmd = "\@test \"! -d $logdir\" && mkdir -p $logdir";
-        push( @precmds, $mklogdircmd );
-    }
-
-    foreach my $target (@targets) {
-        my $rootdir = dirname($target);
-
-        my $mkdircmd = "\@test \"! -d $rootdir\" && mkdir -p $rootdir";
-        push( @precmds, $mkdircmd );
-    }
-
-# Setup the user's commands, taking care of imposing memory limits and adding in cluster prefix commands
+    # Setup the user's commands, taking care of imposing memory limits and
+    # adding in cluster prefix commands
+    my @cmds = @{ $job->commands };
     for ( my $i = 0 ; $i <= $#cmds ; $i++ ) {
         if (   $cmds[$i] =~ /^java /
             && $cmds[$i] =~ / -jar /
             && $cmds[$i] !~ / -Xmx/ )
         {
-            $cmds[$i] =~ s/^java /java -Xmx$bja{'memLimit'}g /;
+            my $memLimit = $self->memLimit;
+            $cmds[$i] =~ s/^java /java -Xmx${memLimit}g /;
         }
     }
+    $job->commands( \@cmds );
 
-    if ( !defined( $bja{'name'} ) ) {
-        my $firstcmd = $cmds[0];
-        my $name     = "unknown";
-        if ( $firstcmd =~ /java/ && $firstcmd =~ /-jar/ ) {
-            ($name) = $firstcmd =~ /-jar\s+(.+?)\s+/;
-        }
-        else {
-            $firstcmd =~ m/([A-Za-z0-9\_\/]+)/;
-            $name = $1;
-        }
+    # hand job to distribute engine
+    my $engine = $self->_engine;
+    $engine->job($job);
 
-        $bja{'name'} = &basename($name);
+    # setting batchjob overrides to engine object. Revert at end of sub
+    my %origOverrides;
+    for my $key ( sort keys %batchjoboverrides ) {
+        $origOverrides{$key} = $self->$key;
+        $engine->$key( $batchjoboverrides{$key} );
     }
-
-    # -l is not supported on all SGE systems
-    my $memRequest = $bja{'memRequest'};
-
-    my $cmdprefix  = "";
-    my $cmdpostfix = "";
-
-    if ( $bja{'cluster'} eq 'SGE' ) {
-        $cmdprefix = "qsub -sync y -cwd -V -b yes -j y"
-          . (
-            defined $memRequest
-            ? qq/ -l h_vmem=${memRequest}G/
-            : q//
-          ) . " -o $bja{'outputFile'} -N $bja{'name'}";
-        $cmdprefix .=
-          ( defined( $bja{'projectName'} ) )
-          ? " -P $bja{'projectName'}"
-          : "";
-        $cmdprefix .= ( $bja{'rerunnable'} == 1 ) ? " -r yes" : " -r no";
-        $cmdprefix .=
-          defined( $bja{'queue'} )
-          ? " -q $bja{'queue'}"
-          : "";
-        $cmdprefix .=
-          defined( $bja{PE}->{name} )
-          ? " -pe " . $bja{PE}->{name} . q/ / . $bja{PE}->{range}
-          : "";
-        $cmdprefix .= $bja{'extra'};
-    }
-    elsif ( $bja{'cluster'} eq 'PBS' ) {
-
-    }
-    elsif ( $bja{'cluster'} eq 'LSF' ) {
-
-#$cmdprefix = "bsub -q $bja{'queue'} -M $memCutoff -P $bja{'projectName'} -o $bja{'outputFile'} -u $bja{'mailTo'} -R \"rusage[mem=$integerMemRequest]\" $wait $rerunnable $migrationThreshold $bja{'extra'}";
-    }
-    elsif ( $bja{'cluster'} eq 'localhost' ) {
-        $cmdpostfix = "| tee -a $bja{'outputFile'}";
-    }
-    else {
-        croak
-"programming error. unknkown engine $bja{cluster} was not caught by argument checking";
-    }
-
-    my @modcmds;
-
-    foreach my $cmd (@cmds) {
-        my $modcmd = $cmd;
-
-        # protect single quotes if running on SGE
-        # perhaps this could be an issue with one-liners
-        #using double quotes? -- winni
-        if ( $bja{cluster} eq q/SGE/ ) {
-            $modcmd =~ s/'/"'/g;
-            $modcmd =~ s/'/'"/g;
-            $modcmd =~ s/\$/\$\$/g;
-        }
-
-        # protect $ signs from make by turning them into $$
-        if ( $bja{cluster} eq q/localhost/ ) {
-            $modcmd =~ s/\$/\$\$/g;
-        }
-
-        push( @modcmds, "$cmdprefix   $modcmd   $cmdpostfix" );
-    }
-
-    # Setup the post-commands (touching output files to make sure
-    # the timestamps don't get screwed up by clock skew between cluster nodes).
-    my @postcmds;
-    foreach my $target (@targets) {
-        push( @postcmds, "\@touch -c $target" ) if $bja{postCmdTouch};
-    }
-
-    my $cmd =
-        join( "\n\t", @precmds ) . "\n\t"
-      . join( "\n\t", @modcmds ) . "\n\t"
-      . join( "\n\t", @postcmds ) . "\n\n";
 
     # Emit the makefile commands
-    print { $self->{'makefile'} } "$targets[0]: "
-      . join( " ", @dependencies ) . "\n\t"
-      . $cmd;
-    push( @{ $self->{'targets'} }, $targets[0] );
+    print { $self->_makefile } $self->_engine->jobAsTxt;
 
-    return DM::Job->new(
-        targets => \@targets,
-        prereqs => \@dependencies,
-        command => $cmd
-    );
+    push( @{ $self->targets }, $self->_engine->job->target );
+
+    # undo temporary overrides
+    for my $key ( sort keys %origOverrides ) {
+        $engine->$key( $origOverrides{$key} );
+    }
+
+    return $self->_engine->job;
 }
 
 =head2 execute()
@@ -476,46 +354,46 @@ sub execute {
 
     # checking to make sure all started job arrays were ended.
     die "Need to end all started job arrays with endJobArray()"
-      if defined $self->{currentJobArrayObject};
+      if defined $self->_currentJA;
 
-    print { $self->{'makefile'} } "all: "
+    print { $self->_makefile } "all: "
       . join( " ", @{ $self->{'targets'} } ) . "\n\n";
-    print { $self->{'makefile'} } ".DELETE_ON_ERROR:\n";
+    print { $self->_makefile } ".DELETE_ON_ERROR:\n";
 
     my %makeargs = (
-        'dryRun'         => $self->{'dryRun'},
-        'numJobs'        => $self->{'numJobs'},
-        'keepGoing'      => $self->{'keepGoing'},
-        'alwaysMake'     => $self->{'alwaysMake'},
-        'debugging'      => $self->{'debugging'},
-        'ignoreErrors'   => $self->{'ignoreErrors'},
-        'printDirectory' => $self->{'printDirectory'},
-        'touch'          => $self->{'touch'},
-        'target'         => $self->{'target'},
-        'touchFiles'     => $self->{'touchFiles'},
+        dryRun         => $self->dryRun,
+        numJobs        => $self->numJobs,
+        keepGoing      => $self->keepGoing,
+        alwaysMake     => $self->alwaysMake,
+        debugging      => $self->debugging,
+        ignoreErrors   => $self->ignoreErrors,
+        printDirectory => $self->printDirectory,
+        touch          => $self->touch,
+        target         => $self->target,
         %overrides,
     );
 
     my $numjobs = $makeargs{'numJobs'};
 
     my $makecmd = "make"
-      . ( $makeargs{'dryRun'}         ? " -n" : "" )
-      . ( $makeargs{'keepGoing'}      ? " -k" : "" )
-      . ( $makeargs{'alwaysMake'}     ? " -B" : "" )
-      . ( $makeargs{'ignoreErrors'}   ? " -i" : "" )
-      . ( $makeargs{'printDirectory'} ? " -w" : "" )
-      . ( $makeargs{'touch'}          ? " -t" : "" )
+      . ( $makeargs{dryRun}         ? " -n" : "" )
+      . ( $makeargs{keepGoing}      ? " -k" : "" )
+      . ( $makeargs{alwaysMake}     ? " -B" : "" )
+      . ( $makeargs{ignoreErrors}   ? " -i" : "" )
+      . ( $makeargs{printDirectory} ? " -w" : "" )
+      . ( $makeargs{touch}          ? " -t" : "" )
       . (
-        $makeargs{'debugging'} =~ /[abvijm]+/
-        ? " --debug=$makeargs{'debugging'}"
+        $makeargs{debugging} =~ /[abvijm]+/
+        ? " --debug=$makeargs{debugging}"
         : ""
       )
-      . (    $makeargs{'debugging'} =~ /\d+/
-          && $makeargs{'debugging'} == 1 ? " -d" : "" )
+      . (    $makeargs{debugging} =~ /\d+/
+          && $makeargs{debugging} == 1 ? " -d" : "" )
       . " -j $numjobs" . " -f "
-      . $self->{'makefile'}->filename
-      . " $makeargs{'target'}";
+      . $self->_makefile->filename
+      . " $makeargs{target}";
 
+    $self->_makefile->flush;
     print "$makecmd\n";
     system($makecmd);
     my $errCode = $? >> 8;
@@ -546,11 +424,11 @@ sub startJobArray {
     my ( $self, %overrides ) = @_;
 
     die "startJobArray was called before endJobArray"
-      if defined $self->{currentJobArrayObject};
+      if defined $self->_currentJA;
 
     my %args = (
         target       => undef,
-        globalTmpDir => $self->{globalTmpDir},
+        globalTmpDir => $self->globalTmpDir,
         name         => 'DM::JobArray',
         %overrides,
     );
@@ -563,7 +441,7 @@ sub startJobArray {
     );
 
     # save new object
-    $self->{currentJobArrayObject} = $jobArrayObject;
+    $self->_currentJA($jobArrayObject);
     return $jobArrayObject;
 }
 
@@ -605,7 +483,7 @@ sub addJobArrayRule {
 
     # check to make sure startJobArray() has been run
     die "need to run startJobArray() first"
-      unless defined $self->{currentJobArrayObject};
+      unless defined $self->_currentJA;
 
     # allow three arg input
     if ( @_ == 3 ) {
@@ -625,20 +503,18 @@ sub addJobArrayRule {
 
     # parse job args by creating a job object
     my $job = DM::Job->new(
-        targets => $jobArgs{target},
-        prereqs => $jobArgs{prereqs},
-        command => $jobArgs{command}
+        targets  => $jobArgs{target},
+        prereqs  => $jobArgs{prereqs},
+        commands => $jobArgs{command}
     );
 
     # just use addRule unless we are in an SGE cluster
-    unless ( $self->{cluster} eq 'SGE'
-        || ( defined $args{cluster} && $args{cluster} eq 'SGE' ) )
-    {
-        $self->{currentJobArrayObject}->addJob(
-            $self->addRule( $job->targets, $job->prereqs, $job->command ) );
+    unless ( $self->engineName eq 'SGE' ) {
+        $self->_currentJA->addJob(
+            $self->addRule( $job->targets, $job->prereqs, $job->commands ) );
     }
     else {
-        $self->{currentJobArrayObject}->addSGEJob($job);
+        $self->_currentJA->addSGEJob($job);
     }
 }
 
@@ -664,73 +540,33 @@ sub endJobArray {
     #    $self->{currentJobArrayObject}->closeFileHandles;
 
     # determine how many tasks to kick off in job array
-    my $arrayTasks = @{ $self->{currentJobArrayObject}->arrayTargets };
+    my $arrayTasks = @{ $self->_currentJA->arrayTargets };
 
     # add job array rule
     #  makes sure target is touched when everything ran through successfully
-    my $target = $self->{currentJobArrayObject}->target;
-    if ( $self->{cluster} eq 'SGE' ) {
+    my $target = $self->_currentJA->target;
+    if ( $self->engineName eq 'SGE' ) {
         $self->addRule(
-            $self->{currentJobArrayObject}->target,
-            $self->{currentJobArrayObject}->arrayPrereqs,
+            $self->_currentJA->target,
+            $self->_currentJA->arrayPrereqs,
             " -t 1-$arrayTasks:1  sge_job_array.pl  -t "
-              . $self->{currentJobArrayObject}->targetsFile . ' -p '
-              . $self->{currentJobArrayObject}->prereqsFile . ' -c '
-              . $self->{currentJobArrayObject}->commandsFile
+              . $self->_currentJA->targetsFile . ' -p '
+              . $self->_currentJA->prereqsFile . ' -c '
+              . $self->_currentJA->commandsFile
               . " && touch $target",
-            name => $self->{currentJobArrayObject}->name
+            jobName => $self->_currentJA->name
         );
     }
     else {
         $self->addRule(
-            $self->{currentJobArrayObject}->target,
-            $self->{currentJobArrayObject}->arrayTargets,
-            "touch $target",
-            name => $self->{currentJobArrayObject}->name
+            $self->_currentJA->target, $self->_currentJA->arrayTargets,
+            "touch $target", jobName => $self->_currentJA->name
         );
 
     }
 
-    $self->{currentJobArrayObject}->flushFiles;
-    $self->{currentJobArrayObject} = undef;
-}
-
-=head1 INTERNAL FUNCTIONS
-
-=head2 _check_arg_consistency()
-
-This function is used for checking the consistency of arguments passed to a DM object.
-
-=cut
-
-sub _check_arg_consistency {
-
-    my ( $self, %overrides ) = @_;
-    my %bja = ( %{$self}, %overrides );
-
-    if ( defined $bja{PE}->{name} xor defined $bja{PE}->{name} ) {
-        croak
-          "both 'name' and 'range' need to specified when using the PE option";
-    }
-
-    # testing supported clusters
-    my $isSupported = 0;
-    foreach my $engine ( sort keys %{ $bja{supportedEngines} } ) {
-        $isSupported = 1
-          if ( $bja{cluster} eq $engine
-            && $bja{supportedEngines}->{$engine}->{isSupported} );
-    }
-    croak "$bja{cluster} is not a supported engine" unless $isSupported;
-
-    # cluster related tests
-    my $error = q//;
-    if ( $bja{cluster} ne 'localhost' ) {
-        $error .= "cluster is not 'localhost'\n\t";
-
-        unless ( defined $bja{PE}->{name} || defined $bja{queue} ) {
-            carp $error . "either 'queue' or 'PE' or both need to be defined";
-        }
-    }
+    $self->_currentJA->flushFiles;
+    $self->_currentJA = undef;
 }
 
 =head1 AUTHORS

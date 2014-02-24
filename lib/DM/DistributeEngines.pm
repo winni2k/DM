@@ -1,4 +1,4 @@
-package DM::Distributer;
+package DM::DistributeEngines;
 
 use Moose;
 use MooseX::StrictConstructor;
@@ -6,25 +6,29 @@ use namespace::autoclean;
 use DM::DistributeEngine;
 use Carp;
 use DM::TypeDefs;
-use File::Basename;
 
-# init args
-has engineName =>
-  ( is => 'rw', isa => 'engine_t', builder => '_build_engineName', lazy => 1 );
+has _supportedEngines => (
+    is       => 'ro',
+    isa      => 'HashRef[DM::DistributeEngine]',
+    builder  => '_build_supportedEngines',
+    init_arg => undef,
+);
+
+has name => ( is => 'rw', isa => 'engine_t', builder => '_build_name' );
+
+has queue      => ( is => 'rw', isa => 'Str',             default => undef );
 has memRequest => ( is => 'rw', isa => 'DM::PositiveNum' );
 
 # Cluster engine options
 for my $name (qw/queue projectName jobName/) {
-    has $name => ( is => 'rw', isa => 'Str', default => '' );
+    has $name => ( is => 'rw', default => undef);
 }
 
 has outputFile =>
   ( is => 'rw', isa => 'Str', default => 'distributedmake.log' );
 has rerunnable => ( is => 'rw', isa => 'Bool', default => 0 );
-has extra      => ( is => 'rw', isa => 'Str',  default => q// );
 
-# don't touch the target after creation (turn off for symbolic links)
-has postCmdTouch => ( is => 'rw', isa => 'Bool', default => 1 );
+has extra => ( is => 'rw', isa => 'Str', default => q// );
 
 # parallel environment
 has PE => (
@@ -41,16 +45,8 @@ before PE => sub {
           "both 'name' and 'range' need to specified when using the PE option";
     }
 };
-has job => ( is => 'rw', isa => 'DM::Job' );
 
-# private variables
-has _supportedEngines => (
-    is       => 'ro',
-    isa      => 'HashRef[DM::DistributeEngine]',
-    builder  => '_build_supportedEngines',
-    lazy     => 1,
-    init_arg => undef,
-);
+has job => ( is => 'rw', isa => 'DM::Job', default => undef, lazy => 1 );
 
 around job => sub {
     my $orig = shift;
@@ -60,7 +56,7 @@ around job => sub {
     $self->$orig(@_);
 
     my $name = $self->jobName;
-    if ( $name !~ m/./ ) {
+    if ( !defined($name) ) {
         $name = "DM_job";
 
         my $firstcmd = $self->$orig->commands->[0];
@@ -80,14 +76,14 @@ around job => sub {
 sub cmdPostfix {
     my $self = shift;
 
-    return "| tee -a " . $self->outputFile if $self->engineName eq 'localhost';
+    return "| tee -a " . $self->outputFile if $self->name eq 'localhost';
 }
 
 sub cmdPrefix {
     my $self = shift;
 
     my $cmdprefix = "";
-    if ( $self->engineName eq 'SGE' ) {
+    if ( $self->name eq 'SGE' ) {
         $cmdprefix = "qsub -sync y -cwd -V -b yes -j y"
           . (
             defined $self->memRequest
@@ -121,17 +117,15 @@ sub jobAsTxt {
     my $job  = $self->job;
 
     $job->commands(
-        [
-            @{ $self->_pre_commands },
-            @{ $self->_mod_commands },
-            @{ $self->_post_commands }
-        ]
+        @{ $self->_pre_commands },
+        @{ $self->_mod_commands },
+        @{ $self->_post_commands }
     );
 
     return
         $job->target . q/: /
       . join( " ", @{ $job->prereqs } ) . "\n\t"
-      . join( "\n\t", @{ $job->commands } ) . "\n\n";
+      . join( " ", @{ $job->commands } ) . "\n\n";
 }
 
 sub _mod_commands {
@@ -144,14 +138,14 @@ sub _mod_commands {
         # protect single quotes if running on SGE
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
-        if ( $self->engineName eq q/SGE/ ) {
+        if ( $self->name eq q/SGE/ ) {
             $modcmd =~ s/'/"'/g;
             $modcmd =~ s/'/'"/g;
             $modcmd =~ s/\$/\$\$/g;
         }
 
         # protect $ signs from make by turning them into $$
-        if ( $self->engineName eq q/localhost/ ) {
+        if ( $self->name eq q/localhost/ ) {
             $modcmd =~ s/\$/\$\$/g;
         }
 
@@ -226,8 +220,7 @@ sub _build_supportedEngines {
     };
 }
 
-around engineName => sub {
-    my $orig = shift;
+before name => sub {
     my $self = shift;
 
     # make sure suggested engine is supported
@@ -235,22 +228,20 @@ around engineName => sub {
         croak
           "[DM::DistributeEngines] Requested engine is not supported: $_[0]\n"
           unless $self->_supportedEngines->{ $_[0] }->isSupported;
-        return $self->$orig(@_);
     }
 
     # make sure necessary parameters are set
     else {
-        if ( $self->$orig !~ m/(localhost|multihost)/ ) {
+        if ( $self->name !~ m/(localhost|multihost)/ ) {
             unless ( defined $self->PE || defined $self->queue ) {
                 croak "cluster is not localhost or multihost\n\t"
                   . "either 'queue' or 'PE' or both need to be defined";
             }
         }
-        return $self->$orig;
     }
 };
 
-sub _build_engineName {
+sub _build_name {
     my $self = shift;
 
     # automagically initialize as installed cluster engine
