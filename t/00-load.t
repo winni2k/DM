@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 12;
+use Test::More tests => 14;
 
 BEGIN {
     use_ok('DM::TypeDefs')          || print "Bail out!\n";
@@ -20,6 +20,11 @@ my $job = DM::Job->new(
 can_ok( $job, qw/targets target prereqs commands/ );
 isa_ok( $job, 'DM::Job' );
 
+# testing DM::Distributer method loading
+my $dd = DM::Distributer->new();
+can_ok($dd, qw/engineName memRequest outputFile rerunnable extra postCmdTouch PE job _supportedEngines/);
+isa_ok($dd, 'DM::Distributer');
+
 # testing DM::JobArray method loading
 my $ja = DM::JobArray->new(
     globalTmpDir => '/tmp',
@@ -35,5 +40,5 @@ isa_ok( $ja, 'DM::JobArray' );
 # testing DistributedMake::base method loading
 my $dm = DM->new( globalTmpDir => '/tmp' );
 
-can_ok( $dm, qw/new addRule execute/ );
+can_ok( $dm, qw/new addRule execute addJobArrayRule startJobArray endJobArray _engine/ );
 isa_ok( $dm, 'DM' )

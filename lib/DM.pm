@@ -224,8 +224,9 @@ has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
 # job array related information
 # check for undef to determine if job array has been
 # started but not ended
-has _currentJA => ( is => 'rw', isa => 'DM::JobArray', init_arg => undef );
-has globalTmpDir => ( is => 'rw', isa => 'Str', default => undef, lazy => 1 );
+has _currentJA => ( is => 'rw', isa => 'Maybe[DM::JobArray]', init_arg => undef, default=>undef );
+
+has globalTmpDir => ( is => 'rw', isa => 'Maybe[Str]', default => undef, lazy => 1 );
 
 around globalTmpDir => sub {
     my $orig = shift;
@@ -314,7 +315,7 @@ sub addRule {
     # setting batchjob overrides to engine object. Revert at end of sub
     my %origOverrides;
     for my $key ( sort keys %batchjoboverrides ) {
-        $origOverrides{$key} = $self->$key;
+        $origOverrides{$key} = $engine->$key;
         $engine->$key( $batchjoboverrides{$key} );
     }
 
@@ -477,9 +478,8 @@ none
 
 sub addJobArrayRule {
     my $self = shift;
-
-    my %args;
     my %jobArgs;
+    my %origArgs;
 
     # check to make sure startJobArray() has been run
     die "need to run startJobArray() first"
@@ -494,10 +494,16 @@ sub addJobArrayRule {
 
     # otherwise check required args.
     else {
-        %args = @_;
+        my %args = @_;
         foreach my $arg (qw/target prereqs command/) {
             croak "need to define $arg" unless defined $args{$arg};
             $jobArgs{$arg} = delete $args{$arg};
+        }
+        
+        # set engine args
+        for my $arg (sort keys %args){
+            $origArgs{$arg} = $self->_engine->$arg;
+            $self->_engine->$arg($args{$arg})
         }
     }
 
@@ -515,6 +521,11 @@ sub addJobArrayRule {
     }
     else {
         $self->_currentJA->addSGEJob($job);
+    }
+    
+    # return engine args back to original state
+    for my $arg (sort keys %origArgs){
+        $self->_engine->$arg($origArgs{$arg});
     }
 }
 
@@ -566,7 +577,7 @@ sub endJobArray {
     }
 
     $self->_currentJA->flushFiles;
-    $self->_currentJA = undef;
+    $self->_currentJA(undef);
 }
 
 =head1 AUTHORS

@@ -70,7 +70,9 @@ sub addSGEJob {
         push( @precmds, $mkdircmd );
     }
 
-    print { $self->commandsFile } join( q/ && /, ( @precmds, $job->command ) )
+    my @commands = @{$job->commands};
+    croak "[DM::JobArray] does not support multi-line commands in SGE mode" if @commands > 1;
+    print { $self->commandsFile } join( q/ && /, ( @precmds, @commands ) )
       . "\n";
 
     # PREREQS - also add prereqs to job array prereqs file
