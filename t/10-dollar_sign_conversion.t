@@ -3,7 +3,7 @@ use Test::More tests => 2;
 use File::Compare;
 use DM;
 
-my $test_dir = 't/10-dollar_sign_conversion.tmp';
+my $test_dir = 't/10-dollar_sign_conversion.dir';
 
 ###
 # checking to make sure DM can write to files

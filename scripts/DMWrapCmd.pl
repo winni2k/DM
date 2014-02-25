@@ -91,10 +91,11 @@ sub _build_hosts {
 sub _build_hostLockFiles {
     my $self  = shift;
     my $hosts = $self->hosts;
-    my @hostLocks;
     my $tempDir  = $self->tempDir;
+
     my $hostNum  = 0;
     my $lastHost = $hosts->[0];
+    my @hostLocks;
     for my $host ( @{$hosts} ) {
         $hostNum = 0 if $host ne $lastHost;
         push @hostLocks, $tempDir . "/$host.lock$hostNum";
