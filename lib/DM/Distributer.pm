@@ -19,14 +19,6 @@ for my $name (qw/queue projectName/) {
     has $name => ( is => 'rw', isa => 'Str', default => '' );
 }
 
-sub jobName {
-    my $self = shift;
-    if (@_) {
-        return $self->job->name(@_);
-    }
-    return $self->job->name;
-}
-
 has outputFile =>
   ( is => 'rw', isa => 'Str', default => 'distributedmake.log' );
 has rerunnable   => ( is => 'rw', isa => 'Bool',       default => 0 );
@@ -67,16 +59,29 @@ has _cmdWrapper => (
     lazy     => 1
 );
 
+has hostsFile => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
+
+sub jobName {
+    my $self = shift;
+    if (@_) {
+        return $self->job->name(@_);
+    }
+    return $self->job->name;
+}
+
 sub finalize {
     my $self = shift;
-    if($self->engineName ne 'localhost'){
+    if ( $self->engineName ne 'localhost' ) {
         $self->_cmdWrapper->finalize;
     }
 }
 
 sub _build_cmdWrapper {
     my $self = shift;
-    return DM::WrapCmd->new( globalTmpDir => $self->globalTmpDir );
+    return DM::WrapCmd->new(
+        globalTmpDir => $self->globalTmpDir,
+        hostsFile    => $self->hostsFile
+    );
 }
 
 sub _cmdPostfix {

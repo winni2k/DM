@@ -8,7 +8,7 @@ if ( not $ENV{TEST_AUTHOR} ) {
     plan( skip_all => $msg );
 }
 
-my $testHost = 'localhost';
+my $testHostFile = 't/60-hostsFile.yaml';
 my $test_dir = 't/60-wrapCommand.tmp';
 
 ###
@@ -16,7 +16,7 @@ my $test_dir = 't/60-wrapCommand.tmp';
 my $target1 = init_testfile( $test_dir . '/target1' );
 
 my $target1_expected = "$test_dir/target1.expected";
-my $dm = DM->new( dryRun => 0, engineArgs=>{engineName=>'multihost'} );
+my $dm = DM->new( dryRun => 0, engineArgs=>{engineName=>'multihost', hostFile=>$testHostFile} );
 $dm->addRule(
     $target1, "",
     'echo "hello world" > ' . $target1,
