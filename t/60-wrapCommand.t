@@ -1,22 +1,28 @@
 #!perl
-use Test::More tests => 2;
+use Test::More;
 use File::Compare;
+use File::Path qw(make_path remove_tree);
 use DM;
 
 if ( not $ENV{TEST_AUTHOR} ) {
     my $msg = 'Author test.  Set $ENV{TEST_AUTHOR} to a true value to run.';
     plan( skip_all => $msg );
 }
+plan( tests => 1 );
 
-my $testHostFile = 't/60-hostsFile.yaml';
-my $test_dir = 't/60-wrapCommand.tmp';
+my $test_dir     = 't/60-wrapCommand.dir';
+my $testHostFile = $test_dir . '/60-hostsFile.yaml';
 
 ###
 # checking to make sure DM can write to files
 my $target1 = init_testfile( $test_dir . '/target1' );
 
 my $target1_expected = "$test_dir/target1.expected";
-my $dm = DM->new( dryRun => 0, engineArgs=>{engineName=>'multihost', hostFile=>$testHostFile} );
+my $dm               = DM->new(
+    dryRun       => 0,
+    globalTmpDir => $test_dir,
+    engineArgs   => { engineName => 'multihost', hostsFile => $testHostFile }
+);
 $dm->addRule(
     $target1, "",
     'echo "hello world" > ' . $target1,

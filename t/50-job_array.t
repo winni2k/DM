@@ -3,7 +3,7 @@ use Test::More tests => 3;
 use Test::Files;
 use DM 0.001003;
 
-my $test_dir = 't/50-job_array.t.tmp';
+my $test_dir = 't/50-job_array.dir';
 
 my $dm = DM->new(
     "dryRun"   => 1,

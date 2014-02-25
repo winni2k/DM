@@ -1,2 +1,0 @@
-test "! -d t/50-job_array.t.tmp" && mkdir -p t/50-job_array.t.tmp && echo 'hi world 1' > t/50-job_array.t.tmp/target1
-test "! -d t/50-job_array.t.tmp" && mkdir -p t/50-job_array.t.tmp && echo 'hi world 2' > t/50-job_array.t.tmp/target2

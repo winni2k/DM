@@ -6,26 +6,31 @@ use namespace::autoclean;
 use YAML::XS;
 use DM::TypeDefs;
 use File::Tempdir;
+use Carp;
 
-has tempDir =>(is=>'ro', isa=>'File::TempDir',  builder=>'_build_tempDir', lazy=>1);
+has tempDir => (
+    is      => 'ro',
+    isa     => 'File::TempDir',
+    builder => '_build_tempDir',
+    lazy    => 1
+);
 has dataFile =>
   ( is => 'ro', isa => 'File::Temp', builder => '_build_dataFile', lazy => 1 );
 
-has hostsFile =>
-  ( is => 'ro', isa => 'Str', required=>1);
+has hostsFile => ( is => 'ro', isa => 'Str', required => 1 );
 
 # validate hosts file
-after hostsFile =>sub{
-    my $self = shift;
-    my %hosts = %{LoadFile($_[0])};
+after hostsFile => sub {
+    my $self  = shift;
+    my %hosts = %{ LoadFile( $_[0] ) };
     croak "Hosts file $_[0] does not contain any hosts" unless keys %hosts;
-}
+};
 
 has globalTmpDir => ( is => 'ro', isa => 'Str', required => 1 );
 has _cmdCounter =>
   ( is => 'rw', isa => 'DM::PositiveNum', default => 0, init_arg => undef );
 
-sub finalize{
+sub finalize {
     my $self = shift;
     $self->dataFile->flush;
     $self->hostsFile->flush;
@@ -33,7 +38,10 @@ sub finalize{
 
 sub _build_tempDir {
     my $self = shift;
-    return File::Tempdir->new(template=>'DMWrapCmd_XXXXXX',DIR=>$self->globalTmpDir);
+    return File::Tempdir->new(
+        template => 'DMWrapCmd_XXXXXX',
+        DIR      => $self->globalTmpDir
+    );
 }
 
 sub _build_dataFile {
