@@ -8,35 +8,41 @@ use DM::TypeDefs;
 use File::Tempdir;
 use Carp;
 
-has tempDir => (
+has tempdir => (
     is      => 'ro',
-    isa     => 'File::TempDir',
-    builder => '_build_tempDir',
+    isa     => 'File::Tempdir',
+    builder => '_build_tempdir',
     lazy    => 1
 );
 has dataFile =>
   ( is => 'ro', isa => 'File::Temp', builder => '_build_dataFile', lazy => 1 );
 
-has hostsFile => ( is => 'ro', isa => 'Str', required => 1 );
+has hostsFile       => ( is => 'ro', isa => 'Str', required => 1 );
+has DMWrapCmdScript => ( is => 'ro', isa => 'Str', required => 1 );
 
 # validate hosts file
 after hostsFile => sub {
-    my $self  = shift;
-    my %hosts = %{ LoadFile( $_[0] ) };
-    croak "Hosts file $_[0] does not contain any hosts" unless keys %hosts;
+    my $self = shift;
+    if (@_) {
+        my $hosts = YAML::XS::LoadFile( $_[0] );
+        croak "Hosts file $_[0] does not contain any hosts"
+          unless keys %{$hosts};
+    }
+
 };
 
 has globalTmpDir => ( is => 'ro', isa => 'Str', required => 1 );
 has _cmdCounter =>
   ( is => 'rw', isa => 'DM::PositiveNum', default => 0, init_arg => undef );
+has _cmds => ( is => 'rw', isa => 'ArrayRef', default => sub { [] } );
 
 sub finalize {
     my $self = shift;
     $self->dataFile->flush;
-    $self->hostsFile->flush;
+    YAML::XS::DumpFile( $self->dataFile->filename, @{ $self->_cmds } );
 }
 
-sub _build_tempDir {
+sub _build_tempdir {
     my $self = shift;
     return File::Tempdir->new(
         template => 'DMWrapCmd_XXXXXX',
@@ -47,8 +53,8 @@ sub _build_tempDir {
 sub _build_dataFile {
     my $self = shift;
     File::Temp->new(
-        TEMPLATE => 'wrapCmd_data_XXXXXX.yaml',
-        DIR      => $self->tempDir,
+        TEMPLATE => 'wrapCmd_data_yaml_XXXXXX',
+        DIR      => $self->tempdir->name,
         UNLINK   => 1
     );
 }
@@ -56,13 +62,15 @@ sub _build_dataFile {
 sub wrapCmd {
     my $self = shift;
     my $cmd  = shift;
-    print { $self->dataFile } Dump($cmd);
+    push @{ $self->_cmds }, $cmd;
+
     my $cmdCounter = $self->_cmdCounter;
-    my $retCmd =
-      q/DMWrapCmd.pl -n / . $cmdCounter . q/ -d / . $self->dataFile->filename;
+    my $retCmd     = $self->DMWrapCmdScript . q/ -n / . $cmdCounter;
     $self->_cmdCounter( ++$cmdCounter );
 
-    $retCmd .= ' -h ' . $self->hostsFile if keys %{ $self->hosts };
+    $retCmd .= q/ -d / . $self->dataFile->filename;
+    $retCmd .= q/ -h / . $self->hostsFile;
+    $retCmd .= q/ -t / . $self->globalTmpDir;
     return $retCmd;
 }
 

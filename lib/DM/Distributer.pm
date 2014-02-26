@@ -13,6 +13,7 @@ use DM::WrapCmd;
 has engineName =>
   ( is => 'rw', isa => 'engine_t', builder => '_build_engineName', lazy => 1 );
 has memRequest => ( is => 'rw', isa => 'DM::PositiveNum' );
+has DMWrapCmdScript =>(is=>'ro', isa=>'Str', default=>'DMWrapCmd.pl');
 
 # Cluster engine options
 for my $name (qw/queue projectName/) {
@@ -80,7 +81,8 @@ sub _build_cmdWrapper {
     my $self = shift;
     return DM::WrapCmd->new(
         globalTmpDir => $self->globalTmpDir,
-        hostsFile    => $self->hostsFile
+        hostsFile    => $self->hostsFile,
+        DMWrapCmdScript=>$self->DMWrapCmdScript,
     );
 }
 

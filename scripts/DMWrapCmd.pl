@@ -1,3 +1,4 @@
+#!/usr/bin/perl -w
 our $VERSION = '0.001';
 $VERSION = eval $VERSION;
 
@@ -17,19 +18,24 @@ DMWrapCmd -n 1 -d mycommands.yaml
 package DMWrapper;
 use Moose;
 use MooseX::StrictConstructor;
+use Moose::Util::TypeConstraints;
 use namespace::autoclean;
 use YAML::XS;
 use File::NFSLock;
 use Carp;
 
+subtype 'DM::PositiveInt', as 'Int',
+  where { $_ >= 0 },
+  message { "The number you provided, $_, was not a positive number" };
+
 has tag => ( is => 'ro', isa => 'Str', default => "[DMWRapCmd.pl]" );
 
 # input variables
-has dataFile => ( is => 'ro', isa => 'Str', required => 1, init_arg => 'd' );
-has tempDir => ( is => 'ro', isa => 'Str', required =>, init_arg => 't' );
+has dataFile  => ( is => 'ro', isa => 'Str', required => 1, init_arg => 'd' );
+has tempDir   => ( is => 'ro', isa => 'Str', required => 1, init_arg => 't' );
 has hostsFile => ( is => 'ro', isa => 'Str', required => 1, init_arg => 'h' );
 has jobNum =>
-  ( is => 'ro', isa = 'DM::PositiveInt', required =>, init_arg => 'n' );
+  ( is => 'ro', isa => 'DM::PositiveInt', required => 1, init_arg => 'n' );
 
 after tempDir => sub {
     my $self = shift;
@@ -47,7 +53,7 @@ after dataFile => sub {
 # class variables
 has jobs => (
     is      => 'ro',
-    isa     => 'ArrayRef[HashRef]',
+    isa     => 'ArrayRef[Str]',
     builder => '_build_jobs',
     lazy    => 1
 );
@@ -78,20 +84,22 @@ has hosts => (
 
 sub _build_hosts {
     my $self  = shift;
-    my $hosts = LoadFile( $self->hostsFile );
+    my @hostRefs = YAML::XS::LoadFile( $self->hostsFile );
     my @hosts;
-    for my $host ( sort keys %{$hosts} ) {
-        for my $hostNum ( 0 .. ( $hosts->{$host} - 1 ) ) {
-            push @hosts, $host;
+    for my $hostRef (@hostRefs) {
+        my @keys = keys %{$hostRef};
+        confess "HostRef has more than one key" if @keys > 1;
+        for my $hostNum ( 0 .. ( $hostRef->{$keys[0]} - 1 ) ) {
+            push @hosts, $keys[0];
         }
     }
     return \@hosts;
 }
 
 sub _build_hostLockFiles {
-    my $self  = shift;
-    my $hosts = $self->hosts;
-    my $tempDir  = $self->tempDir;
+    my $self    = shift;
+    my $hosts   = $self->hosts;
+    my $tempDir = $self->tempDir;
 
     my $hostNum  = 0;
     my $lastHost = $hosts->[0];
@@ -106,13 +114,13 @@ sub _build_hostLockFiles {
 
 sub _build_jobs {
     my $self = shift;
-    my $jobs = LoadFile( $self->dataFile );
+    my @jobs = YAML::XS::LoadFile( $self->dataFile );
 
     croak $self->tag
       . " Input job number is larger than jobs in data file: "
       . $self->dataFile
-      if $self->jobNum >= @{$jobs};
-    return $jobs;
+      if $self->jobNum >= @jobs;
+    return \@jobs;
 }
 
 sub _build_cmd {
@@ -123,25 +131,26 @@ sub _build_cmd {
 sub _build_lockObject {
     my $self = shift;
 
-    my $blocking_timeout = 5;
+    my $blocking_timeout = 3;
     my $hostLockFiles    = $self->hostLockFiles;
     while (1) {
         for my $hostLockFile ( @{$hostLockFiles} ) {
             my $lock = File::NFSLock->new(
                 {
                     file             => $hostLockFile,
-                    lock_type        => 'BLOCKING',
-                    blocking_timeout => $blocking_timeout,
+                    lock_type        => 'NONBLOCKING',
                 }
             );
             if ( defined $lock ) {
                 return $lock;
             }
         }
+        # wait at least blocking timeout plus a random amount of time
+        sleep $blocking_timeout + rand($blocking_timeout);
     }
 }
 
-sub exitWithExitStatus {
+sub runAndExitWithExitStatus {
     my $self = shift;
     my $cmd  = $self->cmd;
 
