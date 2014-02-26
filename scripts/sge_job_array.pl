@@ -1,4 +1,6 @@
 #!/usr/bin/perl -w
+package DM::sge_job_array
+
 use strict;
 use Getopt::Std;
 

@@ -1,8 +1,4 @@
 #!/usr/bin/perl -w
-our $VERSION = '0.001';
-$VERSION = eval $VERSION;
-
-#print STDERR "DMWrapCmd.pl -- $VERSION\nBy\twkretzsch@gmail.com\n\n";
 
 =head1 NAME
 
@@ -16,6 +12,7 @@ DMWrapCmd -n 1 -d mycommands.yaml
 =cut
 
 package DMWrapper;
+
 use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
