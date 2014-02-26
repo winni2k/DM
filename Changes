@@ -1,5 +1,5 @@
 {{$NEXT}}
-          Changing test host to 'localhost'
+          Rearranged dzil release process.  This is a test to see if everything works as expected.
 
 0.2.10    2014-02-26 17:35:52+00:00 Europe/London (TRIAL RELEASE)
           Trying to get the dzil build just right so that builds can be seen on the build and release branches         
