@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.2.10    2014-02-26 17:35:52+00:00 Europe/London (TRIAL RELEASE)
           Trying to get the dzil build just right so that builds can be seen on the build and release branches         
 
 0.2.9     Wed Feb 26 15:48:11 GMT 2014
