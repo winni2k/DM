@@ -1,0 +1,60 @@
+{
+   "abstract" : "Distributed Make: A perl module for running pipelines",
+   "author" : [
+      "Kiran V Garimella <kiran@well.ox.ac.uk> and Warren W. Kretzschmar <warren.kretzschmar@well.ox.ac.uk>"
+   ],
+   "dynamic_config" : 0,
+   "generated_by" : "Dist::Zilla version 5.013, CPAN::Meta::Converter version 2.132830",
+   "license" : [
+      "perl_5"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "DM",
+   "prereqs" : {
+      "configure" : {
+         "requires" : {
+            "ExtUtils::MakeMaker" : "6.30"
+         }
+      },
+      "develop" : {
+         "requires" : {
+            "Test::More" : "0",
+            "Test::NoTabs" : "0"
+         }
+      },
+      "runtime" : {
+         "requires" : {
+            "Carp" : "0",
+            "File::Basename" : "0",
+            "File::NFSLock" : "0",
+            "File::Temp" : "0",
+            "File::Tempdir" : "0",
+            "Getopt::Std" : "0",
+            "Moose" : "0",
+            "Moose::Util::TypeConstraints" : "0",
+            "MooseX::StrictConstructor" : "0",
+            "Net::OpenSSH" : "0",
+            "Sys::Hostname" : "0",
+            "YAML::XS" : "0",
+            "namespace::autoclean" : "0",
+            "perl" : "5.006",
+            "strict" : "0",
+            "warnings" : "0"
+         }
+      },
+      "test" : {
+         "requires" : {
+            "File::Path" : "0",
+            "FindBin" : "0",
+            "Test::Files" : "0",
+            "Test::More" : "0"
+         }
+      }
+   },
+   "release_status" : "testing",
+   "version" : "0.2.10"
+}
+
