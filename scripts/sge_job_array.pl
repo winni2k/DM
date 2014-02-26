@@ -1,6 +1,9 @@
 #!/usr/bin/perl -w
 use strict;
 use Getopt::Std;
+
+# PODNAME: bobby_tables.pl
+
 my %args;
 getopt( 'ctp', \%args );
 my $commands_file = defined $args{c}
@@ -10,14 +13,14 @@ my $targets_file = defined $args{t}
 my $prereqs_file = defined $args{p}
   && -e $args{p} ? $args{p} : die "prereqs file needs to be defined";
 
-## Please see file perltidy.ERR
 # open file handle for commands file
 my $fhCOMMANDS;
 my $fhTARGETS;
 my $fhPREREQS;
-open $fhCOMMANDS, '<', $commands_file or die " Couldn't open $commands_file: $! ";
-open $fhTARGETS,  '<', $targets_file  or die "Couldn't open $targets_file: $!";
-open $fhPREREQS,  '<', $prereqs_file  or die "Couldn't open $prereqs_file: $! ";
+open $fhCOMMANDS, '<', $commands_file
+  or die " Couldn't open $commands_file: $! ";
+open $fhTARGETS, '<', $targets_file or die "Couldn't open $targets_file: $!";
+open $fhPREREQS, '<', $prereqs_file or die "Couldn't open $prereqs_file: $! ";
 
 # seek to appropriate position given SGE_TASK_ID
 my $command;

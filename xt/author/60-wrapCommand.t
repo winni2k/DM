@@ -7,19 +7,10 @@ use YAML::XS;
 use FindBin qw/$Bin/;
 use Sys::Hostname;
 
-if ( not $ENV{TEST_AUTHOR} ) {
-    my $msg = 'Author test.  Set $ENV{TEST_AUTHOR} to a true value to run.';
-    plan( skip_all => $msg );
-}
-if( not hostname eq 'mandarin.stats.ox.ac.uk'){
-    my $msg = 'This test needs to be run on mandarin';
-    plan(skip_all=>$msg);
-}
-
 my $numTests = 5;
 plan( tests => $numTests );
 
-my $test_dir = 't/60-wrapCommand.dir';
+my $test_dir = 'xt/author/60-wrapCommand.dir';
 make_path($test_dir) unless -d $test_dir;
 
 my $testHostFile = $test_dir . '/hostsFile.yaml';
@@ -77,7 +68,7 @@ for my $idx ( 0 .. $#targets ) {
         "Target $targets[$idx] ran on correct host" );
 }
 
-file_ok( $target5, "mandarin.stats.ox.ac.uk\n",
+file_ok( $target5, hostname . "\n",
     "localhost engine override works" );
 
 sub init_testfile {
