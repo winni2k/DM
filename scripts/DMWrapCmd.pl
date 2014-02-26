@@ -23,6 +23,8 @@ use namespace::autoclean;
 use YAML::XS;
 use File::NFSLock;
 use Carp;
+use Net::OpenSSH;
+use Sys::Hostname;
 
 subtype 'DM::PositiveInt', as 'Int',
   where { $_ >= 0 },
@@ -71,7 +73,7 @@ has lockObject => (
 );
 has hostLockFiles => (
     is      => 'ro',
-    isa     => 'ArrayRef[Str]',
+    isa     => 'ArrayRef[ArrayRef[Str]]',
     builder => '_build_hostLockFiles',
     lazy    => 1
 );
@@ -81,15 +83,16 @@ has hosts => (
     builder => '_build_hosts',
     lazy    => 1
 );
+has _chosenHost => ( is => 'rw', isa => 'Str', default => 'localhost' );
 
 sub _build_hosts {
-    my $self  = shift;
+    my $self     = shift;
     my @hostRefs = YAML::XS::LoadFile( $self->hostsFile );
     my @hosts;
     for my $hostRef (@hostRefs) {
         my @keys = keys %{$hostRef};
         confess "HostRef has more than one key" if @keys > 1;
-        for my $hostNum ( 0 .. ( $hostRef->{$keys[0]} - 1 ) ) {
+        for my $hostNum ( 0 .. ( $hostRef->{ $keys[0] } - 1 ) ) {
             push @hosts, $keys[0];
         }
     }
@@ -106,7 +109,7 @@ sub _build_hostLockFiles {
     my @hostLocks;
     for my $host ( @{$hosts} ) {
         $hostNum = 0 if $host ne $lastHost;
-        push @hostLocks, $tempDir . "/$host.lock$hostNum";
+        push @hostLocks, [ $host, $tempDir . "/$host.lock$hostNum" ];
         ++$hostNum;
     }
     return \@hostLocks;
@@ -134,20 +137,46 @@ sub _build_lockObject {
     my $blocking_timeout = 3;
     my $hostLockFiles    = $self->hostLockFiles;
     while (1) {
-        for my $hostLockFile ( @{$hostLockFiles} ) {
+        for my $hostLockFileRef ( @{$hostLockFiles} ) {
+            my ( $host, $hostLockFile ) = @{$hostLockFileRef};
             my $lock = File::NFSLock->new(
                 {
-                    file             => $hostLockFile,
-                    lock_type        => 'NONBLOCKING',
+                    file      => $hostLockFile,
+                    lock_type => 'NONBLOCKING',
                 }
             );
             if ( defined $lock ) {
+                $self->_chosenHost($host);
                 return $lock;
             }
         }
+
         # wait at least blocking timeout plus a random amount of time
         sleep $blocking_timeout + rand($blocking_timeout);
     }
+}
+
+sub exitWithStatus {
+    my $self = shift;
+    my $code = shift;
+    my $cmd  = $self->cmd;
+
+    $cmd = '[DMWrapCmd.pl] Command: ' . $cmd;
+    if ( $code == -1 ) {
+        print STDERR "$cmd\nFailed to execute: $!\n";
+        exit 1;
+    }
+    elsif ( $code & 127 ) {
+        printf STDERR "$cmd\nChild died with signal %d, %s coredump\n",
+          ( $code & 127 ), ( $code & 128 ) ? 'with' : 'without';
+    }
+    else {
+        if ( $code >> 8 ) {
+            printf STDERR "$cmd\nCommand exited with non-zero value %d\n",
+              $code >> 8;
+        }
+    }
+    exit $code >> 8;
 }
 
 sub runAndExitWithExitStatus {
@@ -155,23 +184,37 @@ sub runAndExitWithExitStatus {
     my $cmd  = $self->cmd;
 
     my $lock = $self->lockObject;
-    system($cmd );
-    $cmd = '[DMWrapCmd.pl] Command: ' . $cmd;
-    if ( $? == -1 ) {
-        print STDERR "$cmd\nFailed to execute: $!\n";
-        exit 1;
+
+    # document what we are running
+    print STDOUT $self->tag." $cmd\n";
+
+    # run locally
+    if ( $self->_chosenHost eq hostname ) {
+        system($cmd);
+
+        $self->exitWithStatus($?);
     }
-    elsif ( $? & 127 ) {
-        printf STDERR "$cmd\nChild died with signal %d, %s coredump\n",
-          ( $? & 127 ), ( $? & 128 ) ? 'with' : 'without';
-    }
+
+    # open run through ssh connection
     else {
-        if ( $? >> 8 ) {
-            printf STDERR "$cmd\nCommand exited with non-zero value %d\n",
-              $? >> 8;
-        }
+
+        my $ssh = Net::OpenSSH->new( $self->_chosenHost );
+        $ssh->error
+          and croak "Couldn't establish SSH connection: " . $ssh->error;
+
+        # change to current directory on remote host before execution
+        $cmd = q/cd / . Cwd::getcwd() . q/ && / . $cmd;
+
+        # run command on remote host
+        my ( $output, $error ) = $ssh->capture2($cmd);
+        $ssh->error
+          and croak "Command didn't complete successfully: "
+          . $ssh->error
+          . "\nCommand: $cmd";
+        print $output;
+        print STDERR $error;
+        $self->exitWithStatus($?);
     }
-    exit $? >> 8;
 }
 
 __PACKAGE__->meta->make_immutable;

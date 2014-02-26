@@ -4,7 +4,7 @@ use MooseX::StrictConstructor;
 use namespace::autoclean;
 
 use version 0.77;
-our $VERSION = qv('0.2.8');
+our $VERSION = qv('0.2.9');
 use 5.006;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;

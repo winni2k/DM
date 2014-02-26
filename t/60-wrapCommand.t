@@ -5,19 +5,25 @@ use File::Path qw(make_path remove_tree);
 use DM;
 use YAML::XS;
 use FindBin qw/$Bin/;
+use Sys::Hostname;
 
 if ( not $ENV{TEST_AUTHOR} ) {
     my $msg = 'Author test.  Set $ENV{TEST_AUTHOR} to a true value to run.';
     plan( skip_all => $msg );
 }
-my $numTests = 4
+if( not hostname eq 'mandarin.stats.ox.ac.uk'){
+    my $msg = 'This test needs to be run on mandarin';
+    plan(skip_all=>$msg);
+}
+
+my $numTests = 5;
 plan( tests => $numTests );
 
 my $test_dir = 't/60-wrapCommand.dir';
 make_path($test_dir) unless -d $test_dir;
 
 my $testHostFile = $test_dir . '/hostsFile.yaml';
-my @hosts = ( { mandarin => 1 }, { fenghuang => 1 }, );
+my @hosts = ( { fenghuang => 4 } );
 YAML::XS::DumpFile( $testHostFile, @hosts );
 
 ###
@@ -43,8 +49,8 @@ $dm->addRule(
 # cheking to make sure DM runs on expected hosts
 my @targets = map { init_testfile( $test_dir . "/target$_" ) } 2 .. 4;
 my @expected = (
-    "mandarin.stats.ox.ac.uk\n", "fenghuang.stats.ox.ac.uk\n",
-    "mandarin.stats.ox.ac.uk\n"
+    "fenghuang.stats.ox.ac.uk\n", "fenghuang.stats.ox.ac.uk\n",
+    "fenghuang.stats.ox.ac.uk\n",
 );
 for my $targetNum ( 0 .. $#targets ) {
     $dm->addRule(
@@ -53,6 +59,15 @@ for my $targetNum ( 0 .. $#targets ) {
         engineName => 'multihost'
     );
 }
+
+# checking if localhost override works
+my $target5 = init_testfile( $test_dir . '/target5' );
+$dm->addRule(
+    $target5, "",
+    'hostname > ' . $target5,
+    engineName => 'localhost'
+);
+
 $dm->execute();
 
 file_ok( $target1, "hello world\n", "Hello world got written" );
@@ -61,6 +76,9 @@ for my $idx ( 0 .. $#targets ) {
     file_ok( $targets[$idx], $expected[$idx],
         "Target $targets[$idx] ran on correct host" );
 }
+
+file_ok( $target5, "mandarin.stats.ox.ac.uk\n",
+    "localhost engine override works" );
 
 sub init_testfile {
 
