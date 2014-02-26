@@ -3,8 +3,6 @@ use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
 
-use version 0.77;
-our $VERSION = qv('0.2.9');
 use 5.006;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;
@@ -24,17 +22,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 CHANGES
 
-0.2.7  Mon Feb 17 22:34:14 GMT 2014
-       Added option to turn of post command touching of targets using the 
-       postCmdTouch batch job override
-
-
-0.2.6  Mon Dec 16 16:22:03 GMT 2013
-       Cluster engines that are not supported are now ignored with an error if their
-       binaries are found on the system.
-
-0.2.5  Mon Dec 16 15:43:58 GMT 2013
-       Added return of exit status from execute()
+See Changes file
 
 =head1 SYNOPSIS
 
