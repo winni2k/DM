@@ -208,7 +208,8 @@ has engineArgs =>
 
 sub _build_distributer {
     my $self = shift;
-    my $dd = DM::Distributer->new( %{ $self->engineArgs }, globalTmpDir=>$self->globalTmpDir );
+    my $dd   = DM::Distributer->new( %{ $self->engineArgs },
+        globalTmpDir => $self->globalTmpDir );
     unless ( $dd->engineName eq 'localhost' ) {
         croak
           "[DM] need to define globalTmpDir if not running in localhost mode"
@@ -230,9 +231,14 @@ has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
 # job array related information
 # check for undef to determine if job array has been
 # started but not ended
-has _currentJA => ( is => 'rw', isa => 'Maybe[DM::JobArray]', init_arg => undef, default=>undef );
+has _currentJA => (
+    is       => 'rw',
+    isa      => 'Maybe[DM::JobArray]',
+    init_arg => undef,
+    default  => undef
+);
 
-has globalTmpDir => ( is => 'rw', isa => 'Maybe[Str]', default => undef);
+has globalTmpDir => ( is => 'rw', isa => 'Maybe[Str]', default => undef );
 
 has _makefile => (
     is       => 'ro',
@@ -494,11 +500,11 @@ sub addJobArrayRule {
             croak "need to define $arg" unless defined $args{$arg};
             $jobArgs{$arg} = delete $args{$arg};
         }
-        
+
         # set engine args
-        for my $arg (sort keys %args){
+        for my $arg ( sort keys %args ) {
             $origArgs{$arg} = $self->_engine->$arg;
-            $self->_engine->$arg($args{$arg})
+            $self->_engine->$arg( $args{$arg} );
         }
     }
 
@@ -517,10 +523,10 @@ sub addJobArrayRule {
     else {
         $self->_currentJA->addSGEJob($job);
     }
-    
+
     # return engine args back to original state
-    for my $arg (sort keys %origArgs){
-        $self->_engine->$arg($origArgs{$arg});
+    for my $arg ( sort keys %origArgs ) {
+        $self->_engine->$arg( $origArgs{$arg} );
     }
 }
 
