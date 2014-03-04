@@ -1,6 +1,6 @@
 package DM::Distributer;
 
-use Moose;
+use Moose::Role;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
 use Carp;
@@ -9,11 +9,13 @@ use DM::DistributeEngine;
 use DM::TypeDefs;
 use DM::WrapCmd;
 
+requires 'globalTmpDir';
+
 # init args
 has engineName =>
   ( is => 'rw', isa => 'engine_t', builder => '_build_engineName', lazy => 1 );
 has memRequest => ( is => 'rw', isa => 'DM::PositiveNum' );
-has DMWrapCmdScript =>(is=>'ro', isa=>'Str', default=>'DMWrapCmd.pl');
+has DMWrapCmdScript => ( is => 'ro', isa => 'Str', default => 'DMWrapCmd.pl' );
 
 # Cluster engine options
 for my $name (qw/queue projectName/) {
@@ -22,9 +24,9 @@ for my $name (qw/queue projectName/) {
 
 has outputFile =>
   ( is => 'rw', isa => 'Str', default => 'distributedmake.log' );
-has rerunnable   => ( is => 'rw', isa => 'Bool',       default => 0 );
-has extra        => ( is => 'rw', isa => 'Str',        default => q// );
-has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
+has rerunnable => ( is => 'rw', isa => 'Bool', default => 0 );
+has extra      => ( is => 'rw', isa => 'Str',  default => q// );
+
 
 # parallel environment
 has PE => (
@@ -48,7 +50,7 @@ has _supportedEngines => (
     is       => 'ro',
     isa      => 'HashRef[DM::DistributeEngine]',
     builder  => '_build_supportedEngines',
-    lazy     => 1,
+    lazy     => 0,
     init_arg => undef,
 );
 
@@ -70,7 +72,7 @@ sub jobName {
     return $self->job->name;
 }
 
-sub finalize {
+sub _finalizeEngine {
     my $self = shift;
     if ( $self->engineName ne 'localhost' ) {
         $self->_cmdWrapper->finalize;
@@ -80,9 +82,9 @@ sub finalize {
 sub _build_cmdWrapper {
     my $self = shift;
     return DM::WrapCmd->new(
-        globalTmpDir => $self->globalTmpDir,
-        hostsFile    => $self->hostsFile,
-        DMWrapCmdScript=>$self->DMWrapCmdScript,
+        globalTmpDir    => $self->globalTmpDir,
+        hostsFile       => $self->hostsFile,
+        DMWrapCmdScript => $self->DMWrapCmdScript,
     );
 }
 
@@ -272,7 +274,16 @@ around engineName => sub {
                 croak "cluster is not localhost or multihost\n\t"
                   . "either 'queue' or 'PE' or both need to be defined";
             }
+
         }
+
+        # make sure global tempdir is defined if running not in localhost mode
+        unless ( $self->$orig eq 'localhost' ) {
+            croak
+"[DM] need to define globalTmpDir if not running in localhost mode"
+              unless defined $self->globalTmpDir;
+        }
+
         return $self->$orig;
     }
 };
@@ -299,7 +310,5 @@ sub _build_engineName {
     # otherwise use localhost
     return 'localhost';
 }
-
-__PACKAGE__->meta->make_immutable;
 
 1;

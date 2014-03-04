@@ -21,14 +21,12 @@ YAML::XS::DumpFile( $testHostFile, @hosts );
 # checking to make sure DM can write to files
 my $target1 = init_testfile( $test_dir . '/target1' );
 my $dm      = DM->new(
-    dryRun       => 0,
-    numJobs      => $numTests,
-    globalTmpDir => $test_dir,
-    engineArgs   => {
-        engineName      => 'multihost',
-        hostsFile       => $testHostFile,
-        DMWrapCmdScript => "$Bin/../scripts/DMWrapCmd.pl",
-    }
+    dryRun          => 0,
+    numJobs         => $numTests,
+    globalTmpDir    => $test_dir,
+    engineName      => 'multihost',
+    hostsFile       => $testHostFile,
+    DMWrapCmdScript => "$Bin/../scripts/DMWrapCmd.pl",
 );
 $dm->addRule(
     $target1, "",
@@ -68,8 +66,7 @@ for my $idx ( 0 .. $#targets ) {
         "Target $targets[$idx] ran on correct host" );
 }
 
-file_ok( $target5, hostname . "\n",
-    "localhost engine override works" );
+file_ok( $target5, hostname . "\n", "localhost engine override works" );
 
 sub init_testfile {
 
