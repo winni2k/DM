@@ -9,6 +9,7 @@ my $dm = DM->new(
     "dryRun"   => 1,
     "numJobs"  => 1,
     outputFile => "$test_dir/output.log",
+    globalTmpDir => $test_dir,
 );
 
 my @prereqs = ( "$test_dir/prereq1", "$test_dir/prereq2", "$test_dir/prereq3" );
@@ -17,7 +18,6 @@ system( "touch " . join( ' ', @prereqs ) );
 my @targets = ( "$test_dir/target1", "$test_dir/target2" );
 
 my $jobArrayObject = $dm->startJobArray(
-    globalTmpDir => $test_dir,
     target       => "$test_dir/target_array.flag"
 );
 $dm->addJobArrayRule(

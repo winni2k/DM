@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.2.11'; # TRIAL
+$DM::VERSION = '0.2.12'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -33,33 +33,7 @@ for my $name (
 # 0 = don't clean tmp file
 has unlinkTmp => ( is => 'ro', isa => 'Bool', default => 1 );
 
-has _engine => (
-    is       => 'ro',
-    isa      => 'DM::Distributer',
-    lazy     => 1,
-    init_arg => undef,
-    builder  => '_build_distributer',
-);
-
-# use engineArgs to override DM::Distributer arguments
-has engineArgs =>
-  ( is => 'ro', isa => 'HashRef', lazy => 1, default => sub { {} } );
-
-sub _build_distributer {
-    my $self = shift;
-    my $dd   = DM::Distributer->new( %{ $self->engineArgs },
-        globalTmpDir => $self->globalTmpDir );
-    unless ( $dd->engineName eq 'localhost' ) {
-        croak
-          "[DM] need to define globalTmpDir if not running in localhost mode"
-          unless defined $self->globalTmpDir;
-    }
-    return $dd;
-}
-
-has outputFile => ( is => 'rw', isa => 'Str' );
-
-# in gigabytes
+# in gigabytes, limit on java jobs
 has memLimit => ( is => 'rw', isa => 'DM::PositiveNum', default => 4 );
 
 # make options
@@ -77,7 +51,7 @@ has _currentJA => (
     default  => undef
 );
 
-has globalTmpDir => ( is => 'rw', isa => 'Maybe[Str]', default => undef );
+has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
 has _makefile => (
     is       => 'ro',
@@ -86,6 +60,8 @@ has _makefile => (
     lazy     => 1,
     builder  => '_build_makefile'
 );
+
+with 'DM::Distributer';
 
 sub _build_makefile {
     my $self = shift;
@@ -96,25 +72,22 @@ sub _build_makefile {
     );
 }
 
-sub engineName {
-    my $self = shift;
-    return $self->_engine->engineName;
-}
-
 
 sub addRule {
     my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) =
       @_;
 
-    my $job = DM::Job->new(
-        targets  => $targetsref,
-        prereqs  => $dependenciesref,
-        commands => $cmdsref
+    $self->job(
+        DM::Job->new(
+            targets  => $targetsref,
+            prereqs  => $dependenciesref,
+            commands => $cmdsref
+        )
     );
 
     # Setup the user's commands, taking care of imposing memory limits and
     # adding in cluster prefix commands
-    my @cmds = @{ $job->commands };
+    my @cmds = @{ $self->job->commands };
     for ( my $i = 0 ; $i <= $#cmds ; $i++ ) {
         if (   $cmds[$i] =~ /^java /
             && $cmds[$i] =~ / -jar /
@@ -124,30 +97,26 @@ sub addRule {
             $cmds[$i] =~ s/^java /java -Xmx${memLimit}g /;
         }
     }
-    $job->commands( \@cmds );
+    $self->job->commands( \@cmds );
 
-    # hand job to distribute engine
-    my $engine = $self->_engine;
-    $engine->job($job);
-
-    # setting batchjob overrides to engine object. Revert at end of sub
+    # setting batchjob overrides to self. Revert at end of sub
     my %origOverrides;
     for my $key ( sort keys %batchjoboverrides ) {
-        $origOverrides{$key} = $engine->$key;
-        $engine->$key( $batchjoboverrides{$key} );
+        $origOverrides{$key} = $self->$key;
+        $self->$key( $batchjoboverrides{$key} );
     }
 
     # Emit the makefile commands
-    print { $self->_makefile } $self->_engine->jobAsMake;
+    print { $self->_makefile } $self->jobAsMake;
 
-    push( @{ $self->targets }, $self->_engine->job->target );
+    push( @{ $self->targets }, $self->job->target );
 
     # undo temporary overrides
     for my $key ( sort keys %origOverrides ) {
-        $engine->$key( $origOverrides{$key} );
+        $self->$key( $origOverrides{$key} );
     }
 
-    return $self->_engine->job;
+    return $self->job;
 }
 
 
@@ -196,7 +165,7 @@ sub execute {
       . " $makeargs{target}";
 
     $self->_makefile->flush;
-    $self->_engine->finalize;
+    $self->_finalizeEngine;
     print "$makecmd\n";
     system($makecmd);
     my $errCode = $? >> 8;
@@ -213,15 +182,15 @@ sub startJobArray {
       if defined $self->_currentJA;
 
     my %args = (
-        target       => undef,
-        globalTmpDir => $self->globalTmpDir,
-        name         => 'DM::JobArray',
+        target => undef,
+        name   => 'DM::JobArray',
         %overrides,
     );
 
     # definition of jobArrayObject
+    # globalTmpDir cannot be overridden, too many headaches otherwise
     my $jobArrayObject = DM::JobArray->new(
-        globalTmpDir => $args{globalTmpDir},
+        globalTmpDir => $self->globalTmpDir,
         name         => $args{name},
         target       => $args{target}
     );
@@ -258,8 +227,8 @@ sub addJobArrayRule {
 
         # set engine args
         for my $arg ( sort keys %args ) {
-            $origArgs{$arg} = $self->_engine->$arg;
-            $self->_engine->$arg( $args{$arg} );
+            $origArgs{$arg} = $self->$arg;
+            $self->$arg( $args{$arg} );
         }
     }
 
@@ -281,7 +250,7 @@ sub addJobArrayRule {
 
     # return engine args back to original state
     for my $arg ( sort keys %origArgs ) {
-        $self->_engine->$arg( $origArgs{$arg} );
+        $self->$arg( $origArgs{$arg} );
     }
 }
 
@@ -338,7 +307,7 @@ DM
 
 =head1 VERSION
 
-version 0.2.11
+version 0.2.12
 
 =head1 SYNOPSIS
 

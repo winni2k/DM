@@ -2,7 +2,7 @@
 
 
 package DMWrapper;
-$DMWrapper::VERSION = '0.2.11'; # TRIAL
+$DMWrapper::VERSION = '0.2.12'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
@@ -228,7 +228,7 @@ DMWrapper
 
 =head1 VERSION
 
-version 0.2.11
+version 0.2.12
 
 =head1 SYNOPSIS
 

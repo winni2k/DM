@@ -1,5 +1,5 @@
 package DM::DistributeEngine;
-$DM::DistributeEngine::VERSION = '0.2.11'; # TRIAL
+$DM::DistributeEngine::VERSION = '0.2.12'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -39,7 +39,7 @@ DM::DistributeEngine
 
 =head1 VERSION
 
-version 0.2.11
+version 0.2.12
 
 =head1 AUTHOR
 

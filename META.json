@@ -34,6 +34,7 @@
             "File::Tempdir" : "0",
             "Getopt::Std" : "0",
             "Moose" : "0",
+            "Moose::Role" : "0",
             "Moose::Util::TypeConstraints" : "0",
             "MooseX::StrictConstructor" : "0",
             "Net::OpenSSH" : "0",
@@ -55,6 +56,6 @@
       }
    },
    "release_status" : "testing",
-   "version" : "0.2.11"
+   "version" : "0.2.12"
 }
 
