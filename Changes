@@ -1,4 +1,4 @@
-0.2.12    2014-03-04 17:56:52+00:00 Europe/London (TRIAL RELEASE)
+0.2.12    2014-03-04 18:05:13+00:00 Europe/London (TRIAL RELEASE)
           Made DM::Distributer a role instead of a class.
           DM::Distributer variables can now be set directly through
           calls to DM objects.
