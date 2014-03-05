@@ -1,5 +1,7 @@
 #!/usr/bin/perl -w
 
+# ABSTRACT: This script is called by DM when running in multihost mode.
+
 
 package DMWrapper;
 $DMWrapper::VERSION = '0.2.12'; # TRIAL
@@ -224,7 +226,7 @@ __END__
 
 =head1 NAME
 
-DMWrapper
+DMWrapper - This script is called by DM when running in multihost mode.
 
 =head1 VERSION
 
@@ -234,10 +236,6 @@ version 0.2.12
 
 # run the second command in the mycommands.yaml
 DMWrapCmd -n 1 -d mycommands.yaml
-
-=head1 NAME
-
-DMWrapCmd.pl
 
 =head1 AUTHOR
 
