@@ -1,5 +1,8 @@
 package DM::JobArray;
 $DM::JobArray::VERSION = '0.2.12'; # TRIAL
+# ABSTRACT: This is the DM::JobArray class.
+
+
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -145,7 +148,7 @@ __END__
 
 =head1 NAME
 
-DM::JobArray
+DM::JobArray - This is the DM::JobArray class.
 
 =head1 VERSION
 
@@ -168,27 +171,6 @@ version 0.2.12
    # flush all temp files
    # this should really be done automatically somehow
    $ja->flushFiles;
-
-=head1 DESCRIPTION
-
-This is the DM::JobArray class.
-
-=head1 NAME
-
-DM::Job
-
-=head1 SEE ALSO
-
-DM
-DM::Job
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014 by Warren Winfried Kretzschmar
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.2 or,
-at your option, any later version of Perl 5 you may have available.
 
 =head1 AUTHOR
 

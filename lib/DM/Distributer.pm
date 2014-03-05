@@ -1,5 +1,7 @@
 package DM::Distributer;
 $DM::Distributer::VERSION = '0.2.12'; # TRIAL
+# ABSTRACT: DM::Distributer is a role whose purpose is to rewrite job commands such that they will run on an SGE or multiple hosts.
+
 use Moose::Role;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -26,7 +28,6 @@ has outputFile =>
   ( is => 'rw', isa => 'Str', default => 'distributedmake.log' );
 has rerunnable => ( is => 'rw', isa => 'Bool', default => 0 );
 has extra      => ( is => 'rw', isa => 'Str',  default => q// );
-
 
 # parallel environment
 has PE => (
@@ -308,7 +309,7 @@ __END__
 
 =head1 NAME
 
-DM::Distributer
+DM::Distributer - DM::Distributer is a role whose purpose is to rewrite job commands such that they will run on an SGE or multiple hosts.
 
 =head1 VERSION
 
