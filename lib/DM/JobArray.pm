@@ -1,5 +1,5 @@
 package DM::JobArray;
-$DM::JobArray::VERSION = '0.3'; # TRIAL
+$DM::JobArray::VERSION = '0.002013'; # TRIAL
 # ABSTRACT: This is the DM::JobArray class.
 
 
@@ -152,7 +152,7 @@ DM::JobArray - This is the DM::JobArray class.
 
 =head1 VERSION
 
-version 0.3
+version 0.002013
 
 =head1 SYNOPSIS
 
