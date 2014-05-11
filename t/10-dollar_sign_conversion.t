@@ -28,7 +28,7 @@ unlink $target1;
 my $target2         = init_testfile("$test_dir/target2");
 my $target2_command = q/perl -e '$L = "hello world 2\n"; print $L'>/ . $target2;
 
-$dm = DM->new( dryRun => 0 );
+$dm = DM->new( dryRun => 0, engineName=>'localhost' );
 $dm->addRule( $target2, "", $target2_command );
 $dm->execute();
 
