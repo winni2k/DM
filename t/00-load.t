@@ -1,5 +1,6 @@
 #!perl
-
+use strictures;
+use warnings;
 use Test::More tests => 11;
 
 BEGIN {

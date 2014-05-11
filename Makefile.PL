@@ -45,7 +45,8 @@ my %WriteMakefileArgs = (
     "File::Path" => 0,
     "FindBin" => 0,
     "Test::Files" => 0,
-    "Test::More" => 0
+    "Test::More" => 0,
+    "strictures" => 0
   },
   "VERSION" => "0.2.12",
   "test" => {
@@ -74,6 +75,7 @@ my %FallbackPrereqs = (
   "YAML::XS" => 0,
   "namespace::autoclean" => 0,
   "strict" => 0,
+  "strictures" => 0,
   "warnings" => 0
 );
 

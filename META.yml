@@ -7,6 +7,7 @@ build_requires:
   FindBin: '0'
   Test::Files: '0'
   Test::More: '0'
+  strictures: '0'
 configure_requires:
   ExtUtils::MakeMaker: '6.30'
 dynamic_config: 0

@@ -1,4 +1,6 @@
 #!perl
+use strictures;
+use warnings;
 use Test::More tests => 3;
 use Test::Files;
 use DM 0.001003;
