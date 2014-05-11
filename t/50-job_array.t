@@ -13,9 +13,9 @@ my $dm = DM->new(
     outputFile => "$test_dir/output.log",
 
     # SGE related options
-    engineName => 'SGE'
+    engineName   => 'SGE',
     globalTmpDir => $test_dir,
-    queue=>"dummy.queue",
+    queue        => "dummy.queue",
 );
 
 my @prereqs = ( "$test_dir/prereq1", "$test_dir/prereq2", "$test_dir/prereq3" );
@@ -23,9 +23,8 @@ system( "touch " . join( ' ', @prereqs ) );
 
 my @targets = ( "$test_dir/target1", "$test_dir/target2" );
 
-my $jobArrayObject = $dm->startJobArray(
-    target       => "$test_dir/target_array.flag"
-);
+my $jobArrayObject =
+  $dm->startJobArray( target => "$test_dir/target_array.flag" );
 $dm->addJobArrayRule(
     target  => $targets[0],
     prereqs => $prereqs[0],
@@ -45,9 +44,6 @@ compare_ok( $jobArrayObject->prereqsFile,
     "$test_dir/prereqs.expected", "prereqs file was created correctly" );
 compare_ok( $jobArrayObject->commandsFile,
     "$test_dir/commands.expected", "commands file was created correctly" );
-
-
-
 
 unlink @prereqs;
 
