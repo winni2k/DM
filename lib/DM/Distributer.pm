@@ -82,6 +82,8 @@ sub _finalizeEngine {
 
 sub _build_cmdWrapper {
     my $self = shift;
+    croak
+      "cmdWrapper usage is not implemented fully yet.  Need to add hosts file";
     return DM::WrapCmd->new(
         globalTmpDir    => $self->globalTmpDir,
         hostsFile       => $self->hostsFile,
@@ -158,18 +160,23 @@ sub _mod_commands {
         # protect single quotes if running on SGE
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
-        #        if ( $self->engineName eq q/SGE/ ) {
-        #            $modcmd =~ s/'/"'/g;
-        #            $modcmd =~ s/'/'"/g;
-        #            $modcmd =~ s/\$/\$\$/g;
-        #        }
-
-        # protect $ signs from make by turning them into $$
-        if ( $self->engineName eq q/localhost/ ) {
+        # TODO move this code into cmdWrapper
+        if ( $self->engineName eq q/SGE/ ) {
+            $modcmd =~ s/'/"'/g;
+            $modcmd =~ s/'/'"/g;
             $modcmd =~ s/\$/\$\$/g;
         }
-        else {
+
+        # protect $ signs from make by turning them into $$
+        elsif ( $self->engineName eq q/localhost/ ) {
+            $modcmd =~ s/\$/\$\$/g;
+        }
+        elsif ( $self->engineName eq q/multihost/ ) {
             $modcmd = $self->_cmdWrapper->wrapCmd($modcmd);
+        }
+        else {
+            confess "Programming error. Unexpected engineName: "
+              . $self->engineName;
         }
 
         push( @modcmds,
