@@ -1,4 +1,4 @@
-0.2.12    2014-05-11 12:41:41+01:00 Europe/London (TRIAL RELEASE)
+0.3       2014-05-11 12:41:41+01:00 Europe/London (TRIAL RELEASE)
 
 0.2.12    2014-03-04 18:05:13+00:00 Europe/London (TRIAL RELEASE)
           Made DM::Distributer a role instead of a class.
