@@ -238,13 +238,18 @@ sub addRule {
     my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) =
       @_;
 
-    $self->job(
-        DM::Job->new(
-            targets  => $targetsref,
-            prereqs  => $dependenciesref,
-            commands => $cmdsref
-        )
+    my @jobArgs = (
+        targets  => $targetsref,
+        prereqs  => $dependenciesref,
+        commands => $cmdsref
     );
+
+    # allow overriding of job name
+    if ( exists $batchjoboverrides{name} ) {
+        push @jobArgs, ( name => $batchjoboverrides{name} );
+        delete $batchjoboverrides{name};
+    }
+    $self->job( DM::Job->new(@jobArgs) );
 
     # Setup the user's commands, taking care of imposing memory limits and
     # adding in cluster prefix commands

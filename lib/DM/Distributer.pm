@@ -24,8 +24,12 @@ for my $name (qw/queue projectName/) {
     has $name => ( is => 'rw', isa => 'Str', default => '' );
 }
 
+# stderr and stdout are passed to output file by default.
+# if errFile is defined, then stderr is passed to errFile
 has outputFile =>
   ( is => 'rw', isa => 'Str', default => 'distributedmake.log' );
+has errFile => ( is => 'rw', isa => 'Maybe[Str]', default => undef );
+
 has rerunnable => ( is => 'rw', isa => 'Bool', default => 0 );
 has extra      => ( is => 'rw', isa => 'Str',  default => q// );
 
@@ -75,7 +79,8 @@ sub jobName {
 
 sub _finalizeEngine {
     my $self = shift;
-    if ( $self->engineName ne 'localhost' ) {
+
+    if ( $self->engineName eq 'multihost' ) {
         $self->_cmdWrapper->finalize;
     }
 }
@@ -102,14 +107,17 @@ sub _cmdPrefix {
 
     my $cmdprefix = "";
     if ( $self->engineName eq 'SGE' ) {
-        $cmdprefix = "qsub -sync y -cwd -V -b yes -j y"
+        $cmdprefix = "qsub -sync y -cwd -V -b yes "
           . (
             defined $self->memRequest
             ? q/ -l h_vmem=/ . $self->memRequest . q/G/
             : q//
           )
           . " -o "
-          . $self->outputFile . " -N "
+          . $self->outputFile
+          . (
+            defined $self->errFile ? " -j no -e " . $self->errFile : " -j yes" )
+          . " -N "
           . $self->jobName;
         $cmdprefix .=
           ( defined( $self->projectName ) )
@@ -174,6 +182,8 @@ sub _mod_commands {
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
         # TODO move this code into cmdWrapper
+        # don't forget to change _finalizeEngine code as 
+        # well when that happens
         if ( $self->engineName eq q/SGE/ ) {
             $modcmd =~ s/'/"'/g;
             $modcmd =~ s/'/'"/g;
