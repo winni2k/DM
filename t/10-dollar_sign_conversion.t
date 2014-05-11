@@ -11,7 +11,7 @@ make_path($test_dir) unless -d $test_dir;
 # checking to make sure DM can write to files
 my $target1 = init_testfile( $test_dir . '/target1' );
 
-my $dm = DM->new( dryRun => 0 );
+my $dm = DM->new( dryRun => 0, globalTmpDir=>"/tmp" );
 $dm->addRule(
     $target1, "",
     'echo "hello world" > ' . $target1,
