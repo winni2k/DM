@@ -11,11 +11,10 @@ make_path($test_dir) unless -d $test_dir;
 # checking to make sure DM can write to files
 my $target1 = init_testfile( $test_dir . '/target1' );
 
-my $dm = DM->new( dryRun => 0, globalTmpDir=>"/tmp" );
+my $dm = DM->new( dryRun => 0, engineName=>'localhost' );
 $dm->addRule(
     $target1, "",
     'echo "hello world" > ' . $target1,
-    engineName => 'localhost'
 );
 $dm->execute();
 
@@ -30,7 +29,7 @@ my $target2         = init_testfile("$test_dir/target2");
 my $target2_command = q/perl -e '$L = "hello world 2\n"; print $L'>/ . $target2;
 
 $dm = DM->new( dryRun => 0 );
-$dm->addRule( $target2, "", $target2_command, engineName => 'localhost' );
+$dm->addRule( $target2, "", $target2_command );
 $dm->execute();
 
 file_ok( $target2, "hello world 2\n", "Hello world got written 2" );
