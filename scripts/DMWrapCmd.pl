@@ -1,8 +1,6 @@
 #!/usr/bin/perl -w
 
-=head1 NAME
-
-DMWrapCmd.pl
+# ABSTRACT: This script is called by DM when running in multihost mode.
 
 =head1 SYNOPSIS
 

@@ -1,5 +1,7 @@
 package DM::TypeDefs;
 
+# ABSTRACT: Class that defines type definitions used by DM and its child classes.
+
 use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;

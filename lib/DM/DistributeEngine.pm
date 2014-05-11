@@ -1,5 +1,7 @@
 package DM::DistributeEngine;
 
+# ABSTRACT: Class to hold the information associated with an engine.
+
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;

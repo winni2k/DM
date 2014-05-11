@@ -1,5 +1,27 @@
 package DM::JobArray;
 
+# ABSTRACT: This is the DM::JobArray class.
+
+=head1 SYNOPSIS
+
+   use DM::JobArray;
+   my $ja = DM::JobArray->new(target=>'XYZ', globalTmpDir=>'/tmp', name => 'test');
+
+   my $job = DM::Job->new(targets=>'XYZ1', prereqs=>[qw/X1 Y1 Z1/],command =>'cat X1 Y1 Z1 > XYZ1');
+
+   
+   # add a job that has already been added by DM::addRule (this needs to be refactored)
+   $ja->addJob($job);
+
+   # or add and sge job
+   $ja->addSGEJob($job);
+
+   # flush all temp files
+   # this should really be done automatically somehow
+   $ja->flushFiles;
+
+=cut
+
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -136,46 +158,3 @@ sub _build_prereqs {
 __PACKAGE__->meta->make_immutable;
 
 1;
-__END__
-
-=head1 NAME
-
-DM::Job
-
-=head1 SYNOPSIS
-
-   use DM::JobArray;
-   my $ja = DM::JobArray->new(target=>'XYZ', globalTmpDir=>'/tmp', name => 'test');
-
-   my $job = DM::Job->new(targets=>'XYZ1', prereqs=>[qw/X1 Y1 Z1/],command =>'cat X1 Y1 Z1 > XYZ1');
-
-   
-   # add a job that has already been added by DM::addRule (this needs to be refactored)
-   $ja->addJob($job);
-
-   # or add and sge job
-   $ja->addSGEJob($job);
-
-   # flush all temp files
-   # this should really be done automatically somehow
-   $ja->flushFiles;
-
-=head1 DESCRIPTION
-
-This is the DM::JobArray class.
-
-
-=head1 SEE ALSO
-
-DM
-DM::Job
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014 by Warren Winfried Kretzschmar
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.2 or,
-at your option, any later version of Perl 5 you may have available.
-
-=cut

@@ -1,5 +1,7 @@
 package DM::WrapCmd;
 
+# ABSTRACT: Module to wrap commands with DMWrapCmdScript for execution in "multihost" mode.
+
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;

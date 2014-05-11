@@ -1,8 +1,11 @@
 #!/usr/bin/perl -w
+
+# ABSTRACT: This script is used by Job Arrays to check prerequisites and run its command arguments.
+
+# PODNAME: sge_job_array.pl
+
 use strict;
 use Getopt::Std;
-
-# PODNAME: bobby_tables.pl
 
 my %args;
 getopt( 'ctp', \%args );
