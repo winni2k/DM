@@ -87,7 +87,7 @@ sub addRule {
 
     # allow overriding of job name
     if ( exists $batchjoboverrides{name} ) {
-        push @jobArgs, $batchjoboverrides{name};
+        push @jobArgs, ( name => $batchjoboverrides{name} );
         delete $batchjoboverrides{name};
     }
     $self->job( DM::Job->new(@jobArgs) );
