@@ -90,9 +90,7 @@ sub addRule {
         push @jobArgs, $batchjoboverrides{name};
         delete $batchjoboverrides{name};
     }
-    $self->job(
-        DM::Job->new(@jobArgs);
-    );
+    $self->job( DM::Job->new(@jobArgs) );
 
     # Setup the user's commands, taking care of imposing memory limits and
     # adding in cluster prefix commands
