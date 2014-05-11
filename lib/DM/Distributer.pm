@@ -79,7 +79,8 @@ sub jobName {
 
 sub _finalizeEngine {
     my $self = shift;
-    if ( $self->engineName ne 'localhost' ) {
+
+    if ( $self->engineName eq 'multihost' ) {
         $self->_cmdWrapper->finalize;
     }
 }
@@ -168,6 +169,8 @@ sub _mod_commands {
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
         # TODO move this code into cmdWrapper
+        # don't forget to change _finalizeEngine code as 
+        # well when that happens
         if ( $self->engineName eq q/SGE/ ) {
             $modcmd =~ s/'/"'/g;
             $modcmd =~ s/'/'"/g;
