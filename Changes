@@ -1,4 +1,6 @@
 {{$NEXT}}
+          Fixed some bugs introduced by previous work for usage with SGE
+          DM::Distributer::projectName and queue may now be undef as well
 
 0.2.12    2014-03-04 18:05:13+00:00 Europe/London (TRIAL RELEASE)
           Made DM::Distributer a role instead of a class.

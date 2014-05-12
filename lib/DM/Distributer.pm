@@ -21,7 +21,7 @@ has DMWrapCmdScript => ( is => 'ro', isa => 'Str', default => 'DMWrapCmd.pl' );
 
 # Cluster engine options
 for my $name (qw/queue projectName/) {
-    has $name => ( is => 'rw', isa => 'Str', default => '' );
+    has $name => ( is => 'rw', isa => 'Maybe[Str]', default => '' );
 }
 
 # stderr and stdout are passed to output file by default.
