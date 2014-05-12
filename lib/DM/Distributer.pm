@@ -1,5 +1,5 @@
 package DM::Distributer;
-$DM::Distributer::VERSION = '0.3'; # TRIAL
+$DM::Distributer::VERSION = '0.4'; # TRIAL
 # ABSTRACT: DM::Distributer is a role whose purpose is to rewrite job commands such that they will run on an SGE or multiple hosts.
 
 use Moose::Role;
@@ -21,7 +21,7 @@ has DMWrapCmdScript => ( is => 'ro', isa => 'Str', default => 'DMWrapCmd.pl' );
 
 # Cluster engine options
 for my $name (qw/queue projectName/) {
-    has $name => ( is => 'rw', isa => 'Str', default => '' );
+    has $name => ( is => 'rw', isa => 'Maybe[Str]', default => '' );
 }
 
 # stderr and stdout are passed to output file by default.
@@ -330,7 +330,7 @@ DM::Distributer - DM::Distributer is a role whose purpose is to rewrite job comm
 
 =head1 VERSION
 
-version 0.3
+version 0.4
 
 =head 2 jobAsMake()
 
