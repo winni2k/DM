@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.4'; # TRIAL
+$DM::VERSION = '0.5'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -194,6 +194,8 @@ sub startJobArray {
         %overrides,
     );
 
+    croak "Need to define globalTmpDir through DM constructor" unless defined $self->globalTmpDir;
+
     # definition of jobArrayObject
     # globalTmpDir cannot be overridden, too many headaches otherwise
     my $jobArrayObject = DM::JobArray->new(
@@ -314,7 +316,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.4
+version 0.5
 
 =head1 SYNOPSIS
 
