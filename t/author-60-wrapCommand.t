@@ -11,7 +11,7 @@ use Test::More;
 use Test::Files;
 use File::Path qw(make_path remove_tree);
 use DM;
-use YAML::XS;
+use YAML::Tiny;
 use FindBin qw/$Bin/;
 use Sys::Hostname;
 
@@ -23,7 +23,7 @@ make_path($test_dir) unless -d $test_dir;
 
 my $testHostFile = $test_dir . '/hostsFile.yaml';
 my @hosts = ( { fenghuang => 4 } );
-YAML::XS::DumpFile( $testHostFile, @hosts );
+YAML::Tiny::DumpFile( $testHostFile, @hosts );
 
 ###
 # checking to make sure DM can write to files
