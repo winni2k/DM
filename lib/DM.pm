@@ -387,6 +387,8 @@ sub startJobArray {
         %overrides,
     );
 
+    croak "Need to define globalTmpDir through DM constructor" unless defined $self->globalTmpDir;
+
     # definition of jobArrayObject
     # globalTmpDir cannot be overridden, too many headaches otherwise
     my $jobArrayObject = DM::JobArray->new(

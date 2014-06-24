@@ -5,7 +5,7 @@ package DM::WrapCmd;
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
-use YAML::XS;
+use YAML::Tiny;
 use DM::TypeDefs;
 use File::Tempdir;
 use Carp;
@@ -26,7 +26,7 @@ has DMWrapCmdScript => ( is => 'ro', isa => 'Str', required => 1 );
 after hostsFile => sub {
     my $self = shift;
     if (@_) {
-        my $hosts = YAML::XS::LoadFile( $_[0] );
+        my $hosts = YAML::Tiny::LoadFile( $_[0] );
         croak "Hosts file $_[0] does not contain any hosts"
           unless keys %{$hosts};
     }
@@ -41,7 +41,7 @@ has _cmds => ( is => 'rw', isa => 'ArrayRef', default => sub { [] } );
 sub finalize {
     my $self = shift;
     $self->dataFile->flush;
-    YAML::XS::DumpFile( $self->dataFile->filename, @{ $self->_cmds } );
+    YAML::Tiny::DumpFile( $self->dataFile->filename, @{ $self->_cmds } );
 }
 
 sub _build_tempdir {
