@@ -40,7 +40,6 @@
             "Net::OpenSSH" : "0",
             "Sys::Hostname" : "0",
             "YAML::Tiny" : "0",
-            "YAML::XS" : "0",
             "namespace::autoclean" : "0",
             "perl" : "5.006",
             "strict" : "0",
