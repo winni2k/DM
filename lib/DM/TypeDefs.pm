@@ -1,5 +1,5 @@
 package DM::TypeDefs;
-$DM::TypeDefs::VERSION = '0.6'; # TRIAL
+$DM::TypeDefs::VERSION = '0.7'; # TRIAL
 # ABSTRACT: Class that defines type definitions used by DM and its child classes.
 
 use Moose;
@@ -30,7 +30,7 @@ DM::TypeDefs - Class that defines type definitions used by DM and its child clas
 
 =head1 VERSION
 
-version 0.6
+version 0.7
 
 =head1 AUTHOR
 

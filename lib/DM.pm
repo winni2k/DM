@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.6'; # TRIAL
+$DM::VERSION = '0.7'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -190,7 +190,7 @@ sub startJobArray {
 
     my %args = (
         target => undef,
-        name   => 'DM::JobArray',
+        name   => 'DMJobArray',
         %overrides,
     );
 
@@ -316,7 +316,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.6
+version 0.7
 
 =head1 SYNOPSIS
 
@@ -504,8 +504,8 @@ Only the target specified in startJobArray() should be used as a prerequisite fo
 =head2 startJobArray()
 
 daes nothing unless 'cluster' eq 'SGE'.
-Requires 'target' and 'globalTmpDir' to be specified as key value pairs:
-    startJobArray(target=>$mytarget, globalTmpDir=>$mytmpdir)
+Requires 'target' to be specified as key value pairs:
+    startJobArray(target=>$mytarget)
 
 =head2 addJobArrayRule()
 

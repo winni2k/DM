@@ -1,4 +1,4 @@
-0.6       2014-05-12 15:58:38+01:00 Europe/London (TRIAL RELEASE)
+0.7       2014-06-24 12:10:02+01:00 Europe/London (TRIAL RELEASE)
           Fixed some bugs introduced by previous work for usage with SGE
           DM::Distributer::projectName and queue may now be undef as well
 
