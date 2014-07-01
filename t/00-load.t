@@ -22,13 +22,14 @@ can_ok( $job, qw/targets target prereqs commands/ );
 isa_ok( $job, 'DM::Job' );
 
 # testing DM::JobArray method loading
+my $tf = File::Temp->new();
 my $ja = DM::JobArray->new(
     globalTmpDir => '/tmp',
     name         => 'test',
     target       => '/tmp/testJA',
-    targetsFile  => tempfile(),
-    prereqsFile  => tempfile(),
-    commandsFile => tempfile(),
+    targetsFile  => $tf->filename,
+    prereqsFile  => $tf->filename,
+    commandsFile => $tf->filename,
 );
 can_ok( $ja,
     qw/globalTmpDir name target commandsFile targetsFile prereqsFile/ );
