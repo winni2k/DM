@@ -28,7 +28,7 @@ my $ja = DM::JobArray->new(
     target       => '/tmp/testJA',
     targetsFile  => tempfile(),
     prereqsFile  => tempfile(),
-    commandsFile => tempFile(),
+    commandsFile => tempfile(),
 );
 can_ok( $ja,
     qw/globalTmpDir name target commandsFile targetsFile prereqsFile/ );
