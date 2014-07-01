@@ -2,13 +2,14 @@
 use strictures;
 use warnings;
 use Test::More tests => 11;
+use File::Temp qw/tempfile/;
 
 BEGIN {
-    use_ok('DM::TypeDefs')          || print "Bail out!\n";
-    use_ok('DM::Job')               || print "Bail out!\n";
-    use_ok('DM::JobArray')          || print "Bail out!\n";
-    use_ok('DM::DistributeEngine')  || print "Bail out!\n";
-    use_ok('DM')                    || print "Bail out!\n";
+    use_ok('DM::TypeDefs')         || print "Bail out!\n";
+    use_ok('DM::Job')              || print "Bail out!\n";
+    use_ok('DM::JobArray')         || print "Bail out!\n";
+    use_ok('DM::DistributeEngine') || print "Bail out!\n";
+    use_ok('DM')                   || print "Bail out!\n";
 }
 
 # testing DM::Job method loading
@@ -24,7 +25,10 @@ isa_ok( $job, 'DM::Job' );
 my $ja = DM::JobArray->new(
     globalTmpDir => '/tmp',
     name         => 'test',
-    target       => '/tmp/testJA'
+    target       => '/tmp/testJA',
+    targetsFile  => tempfile(),
+    prereqsFile  => tempfile(),
+    commandsFile => tempFile(),
 );
 can_ok( $ja,
     qw/globalTmpDir name target commandsFile targetsFile prereqsFile/ );
@@ -34,5 +38,9 @@ isa_ok( $ja, 'DM::JobArray' );
 # testing DM::Distributer method loading
 my $dm = DM->new( globalTmpDir => '/tmp' );
 
-can_ok( $dm, qw/new addRule execute addJobArrayRule startJobArray endJobArray/, qw/engineName memRequest outputFile rerunnable extra PE job _supportedEngines jobAsMake/ );
+can_ok(
+    $dm,
+    qw/new addRule execute addJobArrayRule startJobArray endJobArray/,
+    qw/engineName memRequest outputFile rerunnable extra PE job _supportedEngines jobAsMake/
+);
 isa_ok( $dm, 'DM' )
