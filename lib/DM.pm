@@ -181,16 +181,6 @@ has tmpdir  => ( is => 'ro', isa => 'Str',           default => '/tmp' );
 has target  => ( is => 'ro', isa => 'Str',           default => 'all' );
 has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
 
-# job array related information
-# check for undef to determine if job array has been
-# started but not ended
-has _currentJA => (
-    is       => 'rw',
-    isa      => 'Maybe[DM::JobArray]',
-    init_arg => undef,
-    default  => undef
-);
-
 has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
 has _makefile => (
@@ -367,11 +357,35 @@ On SGE, the job array will only be started once the prerequisites of all job arr
 
 Only the target specified in startJobArray() should be used as a prerequisite for other rules.  The targets specified through addJobArrayRule() should never be used as prerequisites for other rules.
 
+=cut
+
+# job array related information
+# check for undef to determine if job array has been
+# started but not ended
+has _currentJA => (
+    is       => 'rw',
+    isa      => 'Maybe[DM::JobArray]',
+    init_arg => undef,
+    default  => undef
+);
+
+## initialize temp files to hold targets, commands and prereqs for job array
+for my $name (qw(commands targets prereqs)) {
+    my $builder = '_build_' . $name;
+    has $name
+      . "File" => (
+        is      => 'ro',
+        isa     => 'File::Temp',
+        builder => '_build_' . $name,
+        lazy    => 1
+      );
+}
+
 =head2 startJobArray()
 
 daes nothing unless 'cluster' eq 'SGE'.
-Requires 'target' and 'globalTmpDir' to be specified as key value pairs:
-    startJobArray(target=>$mytarget, globalTmpDir=>$mytmpdir)
+Requires 'target' to be specified as key value pairs:
+    startJobArray(target=>$mytarget)
 
 =cut
 
@@ -383,18 +397,22 @@ sub startJobArray {
 
     my %args = (
         target => undef,
-        name   => 'DM::JobArray',
+        name   => 'DMJobArray',
         %overrides,
     );
 
-    croak "Need to define globalTmpDir through DM constructor" unless defined $self->globalTmpDir;
+    croak "Need to define globalTmpDir through DM constructor"
+      unless defined $self->globalTmpDir;
 
     # definition of jobArrayObject
     # globalTmpDir cannot be overridden, too many headaches otherwise
     my $jobArrayObject = DM::JobArray->new(
         globalTmpDir => $self->globalTmpDir,
         name         => $args{name},
-        target       => $args{target}
+        target       => $args{target},
+        targetsFile  => $self->targetsFile,
+        prereqsFile  => $self->prereqsFile,
+        commandsFile => $self->commandsFile,
     );
 
     # save new object
@@ -534,6 +552,37 @@ sub endJobArray {
 
     $self->_currentJA->flushFiles;
     $self->_currentJA(undef);
+}
+
+# routines to build the temporary command, target and prereq files
+sub _build_commands {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'commands' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
+}
+
+sub _build_targets {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'targets' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
+}
+
+sub _build_prereqs {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'prereqs' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
 }
 
 =head1 BUGS

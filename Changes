@@ -1,4 +1,5 @@
 {{$NEXT}}
+          Fixed bug with jobArrays where tempfiles were being deleted too soon.
           Fixed some bugs introduced by previous work for usage with SGE
           DM::Distributer::projectName and queue may now be undef as well
 

@@ -46,6 +46,16 @@ before globalTmpDir => sub {
     }
 };
 
+## initialize temp files to hold targets, commands and prereqs for job array
+for my $name (qw(commands targets prereqs)) {
+    has $name
+      . "File" => (
+        is       => 'ro',
+        isa      => 'File::Temp',
+        required => 1,
+      );
+}
+
 # private variables
 has _jobs => (
     is       => 'rw',
@@ -55,18 +65,6 @@ has _jobs => (
 );
 
 # output variables
-## initialize temp files to hold targets, commands and prereqs for job array
-for my $name (qw(commands targets prereqs)) {
-    my $builder = '_build_' . $name;
-    has $name
-      . "File" => (
-        is      => 'ro',
-        isa     => 'File::Temp',
-        builder => '_build_' . $name,
-        lazy    => 1
-      );
-}
-
 sub flushFiles {
     my $self = shift;
     for my $name (qw(commands targets prereqs)) {
@@ -92,8 +90,9 @@ sub addSGEJob {
         push( @precmds, $mkdircmd );
     }
 
-    my @commands = @{$job->commands};
-    croak "[DM::JobArray] does not support multi-line commands in SGE mode" if @commands > 1;
+    my @commands = @{ $job->commands };
+    croak "[DM::JobArray] does not support multi-line commands in SGE mode"
+      if @commands > 1;
     print { $self->commandsFile } join( q/ && /, ( @precmds, @commands ) )
       . "\n";
 
@@ -123,36 +122,6 @@ sub arrayPrereqs {
     my @pre;
     map { push @pre, @{ $_->prereqs } } @{ $self->_jobs };
     return \@pre;
-}
-
-sub _build_commands {
-    my $self = shift;
-    return File::Temp->new(
-        TEMPLATE => 'commands' . '_XXXXXX',
-        DIR      => $self->globalTmpDir,
-        UNLINK   => 1
-    );
-
-}
-
-sub _build_targets {
-    my $self = shift;
-    return File::Temp->new(
-        TEMPLATE => 'targets' . '_XXXXXX',
-        DIR      => $self->globalTmpDir,
-        UNLINK   => 1
-    );
-
-}
-
-sub _build_prereqs {
-    my $self = shift;
-    return File::Temp->new(
-        TEMPLATE => 'prereqs' . '_XXXXXX',
-        DIR      => $self->globalTmpDir,
-        UNLINK   => 1
-    );
-
 }
 
 __PACKAGE__->meta->make_immutable;
