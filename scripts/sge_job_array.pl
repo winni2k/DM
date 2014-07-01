@@ -80,7 +80,7 @@ sge_job_array.pl - This script is used by Job Arrays to check prerequisites and 
 
 =head1 VERSION
 
-version 0.7
+version 0.8
 
 =head1 AUTHOR
 

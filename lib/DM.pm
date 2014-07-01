@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.7'; # TRIAL
+$DM::VERSION = '0.8'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -42,16 +42,6 @@ has memLimit => ( is => 'rw', isa => 'DM::PositiveNum', default => 4 );
 has tmpdir  => ( is => 'ro', isa => 'Str',           default => '/tmp' );
 has target  => ( is => 'ro', isa => 'Str',           default => 'all' );
 has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
-
-# job array related information
-# check for undef to determine if job array has been
-# started but not ended
-has _currentJA => (
-    is       => 'rw',
-    isa      => 'Maybe[DM::JobArray]',
-    init_arg => undef,
-    default  => undef
-);
 
 has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
@@ -182,6 +172,29 @@ sub execute {
 }
 
 
+# job array related information
+# check for undef to determine if job array has been
+# started but not ended
+has _currentJA => (
+    is       => 'rw',
+    isa      => 'Maybe[DM::JobArray]',
+    init_arg => undef,
+    default  => undef
+);
+
+## initialize temp files to hold targets, commands and prereqs for job array
+for my $name (qw(commands targets prereqs)) {
+    my $builder = '_build_' . $name;
+    has $name
+      . "File" => (
+        is      => 'ro',
+        isa     => 'File::Temp',
+        builder => '_build_' . $name,
+        lazy    => 1
+      );
+}
+
+
 sub startJobArray {
     my ( $self, %overrides ) = @_;
 
@@ -194,14 +207,18 @@ sub startJobArray {
         %overrides,
     );
 
-    croak "Need to define globalTmpDir through DM constructor" unless defined $self->globalTmpDir;
+    croak "Need to define globalTmpDir through DM constructor"
+      unless defined $self->globalTmpDir;
 
     # definition of jobArrayObject
     # globalTmpDir cannot be overridden, too many headaches otherwise
     my $jobArrayObject = DM::JobArray->new(
         globalTmpDir => $self->globalTmpDir,
         name         => $args{name},
-        target       => $args{target}
+        target       => $args{target},
+        targetsFile  => $self->targetsFile,
+        prereqsFile  => $self->prereqsFile,
+        commandsFile => $self->commandsFile,
     );
 
     # save new object
@@ -301,6 +318,37 @@ sub endJobArray {
     $self->_currentJA(undef);
 }
 
+# routines to build the temporary command, target and prereq files
+sub _build_commands {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'commands' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
+}
+
+sub _build_targets {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'targets' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
+}
+
+sub _build_prereqs {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'prereqs' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
+}
+
 
 1;    # End of DM
 
@@ -316,7 +364,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.7
+version 0.8
 
 =head1 SYNOPSIS
 
