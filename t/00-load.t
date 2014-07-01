@@ -2,7 +2,7 @@
 use strictures;
 use warnings;
 use Test::More tests => 11;
-use File::Temp qw/tempfile/;
+use File::Temp ();
 
 BEGIN {
     use_ok('DM::TypeDefs')         || print "Bail out!\n";
@@ -27,9 +27,9 @@ my $ja = DM::JobArray->new(
     globalTmpDir => '/tmp',
     name         => 'test',
     target       => '/tmp/testJA',
-    targetsFile  => $tf->filename,
-    prereqsFile  => $tf->filename,
-    commandsFile => $tf->filename,
+    targetsFile  => $tf,
+    prereqsFile  => $tf,
+    commandsFile => $tf,
 );
 can_ok( $ja,
     qw/globalTmpDir name target commandsFile targetsFile prereqsFile/ );
