@@ -4,7 +4,7 @@
 
 
 package DMWrapper;
-$DMWrapper::VERSION = '0.9'; # TRIAL
+$DMWrapper::VERSION = '0.10'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
@@ -230,7 +230,7 @@ DMWrapper - This script is called by DM when running in multihost mode.
 
 =head1 VERSION
 
-version 0.9
+version 0.10
 
 =head1 SYNOPSIS
 
