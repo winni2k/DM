@@ -1,4 +1,6 @@
-0.8       2014-06-24 12:10:02+01:00 Europe/London (TRIAL RELEASE)
+0.9       2014-07-01 12:27:01+01:00 Europe/London (TRIAL RELEASE)
+          Fixed bug where PE option did not work
+          Fixed bug with jobArrays where tempfiles were being deleted too soon.
           Fixed some bugs introduced by previous work for usage with SGE
           DM::Distributer::projectName and queue may now be undef as well
 

@@ -1,5 +1,5 @@
 package DM::Distributer;
-$DM::Distributer::VERSION = '0.8'; # TRIAL
+$DM::Distributer::VERSION = '0.9'; # TRIAL
 # ABSTRACT: DM::Distributer is a role whose purpose is to rewrite job commands such that they will run on an SGE or multiple hosts.
 
 use Moose::Role;
@@ -36,7 +36,7 @@ has extra      => ( is => 'rw', isa => 'Str',  default => q// );
 # parallel environment
 has PE => (
     is  => 'rw',
-    isa => 'HashRef[Str]',
+    isa => 'Maybe[HashRef[Str]]',
 );
 before PE => sub {
     my $self = shift;
@@ -330,7 +330,7 @@ DM::Distributer - DM::Distributer is a role whose purpose is to rewrite job comm
 
 =head1 VERSION
 
-version 0.8
+version 0.9
 
 =head 2 jobAsMake()
 
