@@ -36,7 +36,7 @@ has extra      => ( is => 'rw', isa => 'Str',  default => q// );
 # parallel environment
 has PE => (
     is  => 'rw',
-    isa => 'HashRef[Str]',
+    isa => 'Maybe[HashRef[Str]]',
 );
 before PE => sub {
     my $self = shift;
