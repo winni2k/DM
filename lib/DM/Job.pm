@@ -1,5 +1,5 @@
 package DM::Job;
-$DM::Job::VERSION = '0.10'; # TRIAL
+$DM::Job::VERSION = '0.010'; # TRIAL
 # ABSTRACT: This is the DM::Job class.  Not too exciting.  Defines everything a job needs to know about.
 
 
@@ -57,7 +57,7 @@ DM::Job - This is the DM::Job class.  Not too exciting.  Defines everything a jo
 
 =head1 VERSION
 
-version 0.10
+version 0.010
 
 =head1 SYNOPSIS
 

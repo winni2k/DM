@@ -1,5 +1,5 @@
 package DM::WrapCmd;
-$DM::WrapCmd::VERSION = '0.10'; # TRIAL
+$DM::WrapCmd::VERSION = '0.010'; # TRIAL
 # ABSTRACT: Module to wrap commands with DMWrapCmdScript for execution in "multihost" mode.
 
 use Moose;
@@ -91,7 +91,7 @@ DM::WrapCmd - Module to wrap commands with DMWrapCmdScript for execution in "mul
 
 =head1 VERSION
 
-version 0.10
+version 0.010
 
 =head1 AUTHOR
 
