@@ -1,4 +1,5 @@
-0.010     2014-07-04 11:46:41+01:00 Europe/London (TRIAL RELEASE)
+0.011     2014-07-09 10:39:48+01:00 Europe/London (TRIAL RELEASE)
+          Moved version numbering to three digit decimal format (according to DAGOLDEN)
           Fixed bug where PE option did not work
           Fixed bug with jobArrays where tempfiles were being deleted too soon.
           Fixed some bugs introduced by previous work for usage with SGE

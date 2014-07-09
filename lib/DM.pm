@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.010'; # TRIAL
+$DM::VERSION = '0.011'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -181,6 +181,8 @@ has _currentJA => (
     init_arg => undef,
     default  => undef
 );
+has _currentJASGEJobNum => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+has _pastJASGEJobNum    => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
 
 ## initialize temp files to hold targets, commands and prereqs for job array
 for my $name (qw(commands targets prereqs)) {
@@ -228,6 +230,8 @@ sub startJobArray {
 
     # save new object
     $self->_currentJA($jobArrayObject);
+    $self->_currentJASGEJobNum(0);
+
     return $jobArrayObject;
 }
 
@@ -273,6 +277,7 @@ sub addJobArrayRule {
     }
     else {
         $self->_currentJA->addSGEJob($job);
+        $self->_currentJASGEJobNum( $self->_currentJASGEJobNum + 1 );
     }
 }
 
@@ -300,11 +305,13 @@ sub endJobArray {
             " -t 1-$arrayTasks:1  sge_job_array.pl  -t "
               . $self->_currentJA->targetsFile . ' -p '
               . $self->_currentJA->prereqsFile . ' -c '
-              . $self->_currentJA->commandsFile
+              . $self->_currentJA->commandsFile . ' -o '
+              . $self->_pastJASGEJobNum
               . " && touch $target",
             jobName => $self->_currentJA->name,
             %extraArgs
         );
+        $self->_pastJASGEJobNum($self->_pastJASGEJobNum + $self->_currentJASGEJobNum);
     }
     else {
         $self->addRule(
@@ -367,7 +374,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.010
+version 0.011
 
 =head1 SYNOPSIS
 

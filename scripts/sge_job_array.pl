@@ -4,17 +4,26 @@
 
 # PODNAME: sge_job_array.pl
 
+# use -o to sepcify an offset on top of SGE_TASK_ID
+
 use strict;
 use Getopt::Std;
 
 my %args;
-getopt( 'ctp', \%args );
-my $commands_file = defined $args{c}
-  && -e $args{c} ? $args{c} : die "commands file needs to be defined";
-my $targets_file = defined $args{t}
-  && -e $args{t} ? $args{t} : die "targets file needs to be defined";
-my $prereqs_file = defined $args{p}
-  && -e $args{p} ? $args{p} : die "prereqs file needs to be defined";
+getopt( 'c:t:p:o:', \%args );
+my $commands_file =
+  ( defined $args{c} && -e $args{c} )
+  ? $args{c}
+  : die "commands file needs to be defined";
+my $targets_file =
+  ( defined $args{t} && -e $args{t} )
+  ? $args{t}
+  : die "targets file needs to be defined";
+my $prereqs_file =
+  ( defined $args{p} && -e $args{p} )
+  ? $args{p}
+  : die "prereqs file needs to be defined";
+my $offset = $args{o} || 0;
 
 # open file handle for commands file
 my $fhCOMMANDS;
@@ -29,14 +38,14 @@ open $fhPREREQS, '<', $prereqs_file or die "Couldn't open $prereqs_file: $! ";
 my $command;
 my $prereqs;
 my $target;
-for ( 1 .. $ENV{SGE_TASK_ID} ) {
+for ( 1 .. ( $ENV{SGE_TASK_ID} + $offset ) ) {
     $command = <$fhCOMMANDS>;
-    chomp $command;
     $prereqs = <$fhPREREQS>;
-    chomp $prereqs;
-    $target = <$fhTARGETS>;
-    chomp $target;
+    $target  = <$fhTARGETS>;
 }
+chomp $command;
+chomp $prereqs;
+chomp $target;
 close($fhCOMMANDS);
 close($fhPREREQS);
 close($fhTARGETS);
@@ -80,7 +89,7 @@ sge_job_array.pl - This script is used by Job Arrays to check prerequisites and 
 
 =head1 VERSION
 
-version 0.010
+version 0.011
 
 =head1 AUTHOR
 
