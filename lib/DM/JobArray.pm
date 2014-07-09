@@ -64,6 +64,9 @@ has _jobs => (
     default  => sub { [] }
 );
 
+# job overrides are in this hash
+has extraArgs => ( is => 'ro', isa => 'Maybe[HashRef]', default => undef );
+
 # output variables
 sub flushFiles {
     my $self = shift;

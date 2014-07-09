@@ -387,6 +387,8 @@ daes nothing unless 'cluster' eq 'SGE'.
 Requires 'target' to be specified as key value pairs:
     startJobArray(target=>$mytarget)
 
+Add in overrides at this point.  They will be applied at endJobArray().
+
 =cut
 
 sub startJobArray {
@@ -401,6 +403,10 @@ sub startJobArray {
         %overrides,
     );
 
+    my %extraArgs = %args;
+    delete $extraArgs{target};
+    delete $extraArgs{name};
+
     croak "Need to define globalTmpDir through DM constructor"
       unless defined $self->globalTmpDir;
 
@@ -413,6 +419,7 @@ sub startJobArray {
         targetsFile  => $self->targetsFile,
         prereqsFile  => $self->prereqsFile,
         commandsFile => $self->commandsFile,
+        extraArgs    => \%extraArgs,
     );
 
     # save new object
@@ -453,7 +460,6 @@ none
 sub addJobArrayRule {
     my $self = shift;
     my %jobArgs;
-    my %origArgs;
 
     # check to make sure startJobArray() has been run
     die "need to run startJobArray() first"
@@ -474,11 +480,8 @@ sub addJobArrayRule {
             $jobArgs{$arg} = delete $args{$arg};
         }
 
-        # set engine args
-        for my $arg ( sort keys %args ) {
-            $origArgs{$arg} = $self->$arg;
-            $self->$arg( $args{$arg} );
-        }
+        croak "please specify extra engine args at job array start"
+          if keys %args;
     }
 
     # parse job args by creating a job object
@@ -495,11 +498,6 @@ sub addJobArrayRule {
     }
     else {
         $self->_currentJA->addSGEJob($job);
-    }
-
-    # return engine args back to original state
-    for my $arg ( sort keys %origArgs ) {
-        $self->$arg( $origArgs{$arg} );
     }
 }
 
@@ -527,6 +525,9 @@ sub endJobArray {
     # determine how many tasks to kick off in job array
     my $arrayTasks = @{ $self->_currentJA->arrayTargets };
 
+    # change engineParameters stored in extraArgs
+    my %extraArgs = %{ $self->_currentJA->extraArgs };
+
     # add job array rule
     #  makes sure target is touched when everything ran through successfully
     my $target = $self->_currentJA->target;
@@ -539,19 +540,23 @@ sub endJobArray {
               . $self->_currentJA->prereqsFile . ' -c '
               . $self->_currentJA->commandsFile
               . " && touch $target",
-            jobName => $self->_currentJA->name
+            jobName => $self->_currentJA->name,
+            %extraArgs
         );
     }
     else {
         $self->addRule(
             $self->_currentJA->target, $self->_currentJA->arrayTargets,
-            "touch $target", jobName => $self->_currentJA->name
+            "touch $target",
+            jobName => $self->_currentJA->name,
+            %extraArgs
         );
 
     }
 
     $self->_currentJA->flushFiles;
     $self->_currentJA(undef);
+
 }
 
 # routines to build the temporary command, target and prereq files

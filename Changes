@@ -1,4 +1,5 @@
 {{$NEXT}}
+          Moved version numbering to three digit decimal format (according to DAGOLDEN)
           Fixed bug where PE option did not work
           Fixed bug with jobArrays where tempfiles were being deleted too soon.
           Fixed some bugs introduced by previous work for usage with SGE
