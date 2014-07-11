@@ -304,6 +304,9 @@ sub execute {
       . join( " ", @{ $self->{'targets'} } ) . "\n\n";
     print { $self->_makefile } ".DELETE_ON_ERROR:\n";
 
+    # run all recipes in bash shell instead of sh
+    print { $self->_makefile } "export SHELL=/bin/bash";
+
     my %makeargs = (
         dryRun         => $self->dryRun,
         numJobs        => $self->numJobs,
@@ -368,6 +371,8 @@ has _currentJA => (
     init_arg => undef,
     default  => undef
 );
+has _currentJASGEJobNum => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+has _pastJASGEJobNum    => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
 
 ## initialize temp files to hold targets, commands and prereqs for job array
 for my $name (qw(commands targets prereqs)) {
@@ -424,6 +429,8 @@ sub startJobArray {
 
     # save new object
     $self->_currentJA($jobArrayObject);
+    $self->_currentJASGEJobNum(0);
+
     return $jobArrayObject;
 }
 
@@ -498,6 +505,7 @@ sub addJobArrayRule {
     }
     else {
         $self->_currentJA->addSGEJob($job);
+        $self->_currentJASGEJobNum( $self->_currentJASGEJobNum + 1 );
     }
 }
 
@@ -538,11 +546,13 @@ sub endJobArray {
             " -t 1-$arrayTasks:1  sge_job_array.pl  -t "
               . $self->_currentJA->targetsFile . ' -p '
               . $self->_currentJA->prereqsFile . ' -c '
-              . $self->_currentJA->commandsFile
+              . $self->_currentJA->commandsFile . ' -o '
+              . $self->_pastJASGEJobNum
               . " && touch $target",
             jobName => $self->_currentJA->name,
             %extraArgs
         );
+        $self->_pastJASGEJobNum($self->_pastJASGEJobNum + $self->_currentJASGEJobNum);
     }
     else {
         $self->addRule(
