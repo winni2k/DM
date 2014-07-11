@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.011'; # TRIAL
+$DM::VERSION = '0.012'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -127,6 +127,9 @@ sub execute {
     print { $self->_makefile } "all: "
       . join( " ", @{ $self->{'targets'} } ) . "\n\n";
     print { $self->_makefile } ".DELETE_ON_ERROR:\n";
+
+    # run all recipes in bash shell instead of sh
+    print { $self->_makefile } "export SHELL=/bin/bash";
 
     my %makeargs = (
         dryRun         => $self->dryRun,
@@ -374,7 +377,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.011
+version 0.012
 
 =head1 SYNOPSIS
 
