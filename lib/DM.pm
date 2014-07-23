@@ -302,10 +302,10 @@ sub execute {
 
     print { $self->_makefile } "all: "
       . join( " ", @{ $self->{'targets'} } ) . "\n\n";
-    print { $self->_makefile } ".DELETE_ON_ERROR:\n";
+    print { $self->_makefile } ".DELETE_ON_ERROR:\n\n";
 
     # run all recipes in bash shell instead of sh
-    print { $self->_makefile } "export SHELL=/bin/bash";
+    print { $self->_makefile } "export SHELL=/bin/bash -o pipefail\n";
 
     my %makeargs = (
         dryRun         => $self->dryRun,
