@@ -1,4 +1,4 @@
-0.013     2014-07-11 12:03:15+01:00 Europe/London (TRIAL RELEASE)
+0.014     2014-07-23 13:31:52+01:00 Europe/London (TRIAL RELEASE)
         Made /bin/bash the default shell to run recipes under.
         Fixed bug in SGE job array dispatch where dispatcher would not
         move farther down the list of commands after the first job

@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.013'; # TRIAL
+$DM::VERSION = '0.014'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -129,7 +129,8 @@ sub execute {
     print { $self->_makefile } ".DELETE_ON_ERROR:\n\n";
 
     # run all recipes in bash shell instead of sh
-    print { $self->_makefile } "export SHELL=/bin/bash -o pipefail\n";
+    print { $self->_makefile }
+      "export SHELL=/bin/bash\n.SHELLLFLAGS = -o pipefail\n\n";
 
     my %makeargs = (
         dryRun         => $self->dryRun,
@@ -184,8 +185,9 @@ has _currentJA => (
     init_arg => undef,
     default  => undef
 );
-has _currentJASGEJobNum => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
-has _pastJASGEJobNum    => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+has _currentJASGEJobNum =>
+  ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+has _pastJASGEJobNum => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
 
 ## initialize temp files to hold targets, commands and prereqs for job array
 for my $name (qw(commands targets prereqs)) {
@@ -314,7 +316,8 @@ sub endJobArray {
             jobName => $self->_currentJA->name,
             %extraArgs
         );
-        $self->_pastJASGEJobNum($self->_pastJASGEJobNum + $self->_currentJASGEJobNum);
+        $self->_pastJASGEJobNum(
+            $self->_pastJASGEJobNum + $self->_currentJASGEJobNum );
     }
     else {
         $self->addRule(
@@ -377,7 +380,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.013
+version 0.014
 
 =head1 SYNOPSIS
 
@@ -453,6 +456,10 @@ If true, touch all targets such that make will think that all files have been ma
 =item ignoreErrors 0
 
 Corresponds to -i option in GNU make.
+
+=item outputFile [distributedmake.log]
+
+Log file
 
 =back
 
