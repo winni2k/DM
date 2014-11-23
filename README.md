@@ -52,7 +52,7 @@ After installation the man page is available through:
 
 ## Changes
 
-0.014     2014-11-23 12:47:13+00:00 Europe/London (TRIAL RELEASE)
+0.014  --   2014-11-23 12:47:13+00:00 Europe/London (TRIAL RELEASE)
 
         Made /bin/bash the default shell to run recipes under.
         Fixed bug in SGE job array dispatch where dispatcher would not
