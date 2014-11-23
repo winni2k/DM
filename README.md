@@ -20,8 +20,10 @@ A copy of this code can be found at https://github.com/wkretzsch/DM
 
 ### Using GNU make
 
-Download a *-CPAN release from the releases page on github (for
-example v0.2.6-CPAN).
+#### For DM version <= 0.2.6
+
+For releases before and including 0.2.6, download a *-CPAN release
+from the releases page on github (for example v0.2.6-CPAN). 
 Enter the subdirectory with the version's name (for example
 DM-0.2.6). Then follow standard CPAN procedures:
 
@@ -29,6 +31,12 @@ DM-0.2.6). Then follow standard CPAN procedures:
     make
     make test
     make install
+
+#### For DM version > 0.2.6
+
+For later releases, simply download one of the *-TRIAL releases from
+the releases page on github (for example v0.014-TRIAL), enter that
+directory and follow standard CPAN procedure (see above).
 
 ## Documentation
 
@@ -43,6 +51,37 @@ After installation the man page is available through:
     man DM
 
 ## Changes
+
+0.014     2014-11-23 12:47:13+00:00 Europe/London (TRIAL RELEASE)
+        Made /bin/bash the default shell to run recipes under.
+        Fixed bug in SGE job array dispatch where dispatcher would not
+        move farther down the list of commands after the first job
+        array had been dispatched. 
+        Moved version numbering to three digit decimal format (according to DAGOLDEN)
+        Fixed bug where PE option did not work
+        Fixed bug with jobArrays where tempfiles were being deleted too soon.
+        Fixed some bugs introduced by previous work for usage with SGE
+        DM::Distributer::projectName and queue may now be undef as well
+
+0.2.12  2014-03-04 18:05:13+00:00 Europe/London (TRIAL RELEASE)
+        Made DM::Distributer a role instead of a class.
+        DM::Distributer variables can now be set directly through
+        calls to DM objects.
+
+0.2.11  2014-02-26 23:29:21+00:00 Europe/London (TRIAL RELEASE)
+        Rearranged dzil release process.  This is a test to see if
+        everything works as expected. 
+
+0.2.10  2014-02-26 17:35:52+00:00 Europe/London (TRIAL RELEASE)
+        Trying to get the dzil build just right so that builds can
+        be seen on the build and release branches          
+
+0.2.9   Wed Feb 26 15:48:11 GMT 2014
+        Trying to get dist zilla to get through all the author tests
+
+0.2.7   Mon Feb 17 22:34:14 GMT 2014
+        Added option to turn of post command touching of targets
+        using the postCmdTouch batch job override
 
 0.2.6  Mon Dec 16 16:22:03 GMT 2013
 
