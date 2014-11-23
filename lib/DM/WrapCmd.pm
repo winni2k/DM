@@ -1,9 +1,11 @@
 package DM::WrapCmd;
-$DM::WrapCmd::VERSION = '0.2.12'; # TRIAL
+$DM::WrapCmd::VERSION = '0.014'; # TRIAL
+# ABSTRACT: Module to wrap commands with DMWrapCmdScript for execution in "multihost" mode.
+
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
-use YAML::XS;
+use YAML::Tiny;
 use DM::TypeDefs;
 use File::Tempdir;
 use Carp;
@@ -24,7 +26,7 @@ has DMWrapCmdScript => ( is => 'ro', isa => 'Str', required => 1 );
 after hostsFile => sub {
     my $self = shift;
     if (@_) {
-        my $hosts = YAML::XS::LoadFile( $_[0] );
+        my $hosts = YAML::Tiny::LoadFile( $_[0] );
         croak "Hosts file $_[0] does not contain any hosts"
           unless keys %{$hosts};
     }
@@ -39,7 +41,7 @@ has _cmds => ( is => 'rw', isa => 'ArrayRef', default => sub { [] } );
 sub finalize {
     my $self = shift;
     $self->dataFile->flush;
-    YAML::XS::DumpFile( $self->dataFile->filename, @{ $self->_cmds } );
+    YAML::Tiny::DumpFile( $self->dataFile->filename, @{ $self->_cmds } );
 }
 
 sub _build_tempdir {
@@ -85,11 +87,11 @@ __END__
 
 =head1 NAME
 
-DM::WrapCmd
+DM::WrapCmd - Module to wrap commands with DMWrapCmdScript for execution in "multihost" mode.
 
 =head1 VERSION
 
-version 0.2.12
+version 0.014
 
 =head1 AUTHOR
 

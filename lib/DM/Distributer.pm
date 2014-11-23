@@ -1,5 +1,7 @@
 package DM::Distributer;
-$DM::Distributer::VERSION = '0.2.12'; # TRIAL
+$DM::Distributer::VERSION = '0.014'; # TRIAL
+# ABSTRACT: DM::Distributer is a role whose purpose is to rewrite job commands such that they will run on an SGE or multiple hosts.
+
 use Moose::Role;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -19,19 +21,22 @@ has DMWrapCmdScript => ( is => 'ro', isa => 'Str', default => 'DMWrapCmd.pl' );
 
 # Cluster engine options
 for my $name (qw/queue projectName/) {
-    has $name => ( is => 'rw', isa => 'Str', default => '' );
+    has $name => ( is => 'rw', isa => 'Maybe[Str]', default => '' );
 }
 
+# stderr and stdout are passed to output file by default.
+# if errFile is defined, then stderr is passed to errFile
 has outputFile =>
   ( is => 'rw', isa => 'Str', default => 'distributedmake.log' );
+has errFile => ( is => 'rw', isa => 'Maybe[Str]', default => undef );
+
 has rerunnable => ( is => 'rw', isa => 'Bool', default => 0 );
 has extra      => ( is => 'rw', isa => 'Str',  default => q// );
-
 
 # parallel environment
 has PE => (
     is  => 'rw',
-    isa => 'HashRef[Str]',
+    isa => 'Maybe[HashRef[Str]]',
 );
 before PE => sub {
     my $self = shift;
@@ -74,13 +79,16 @@ sub jobName {
 
 sub _finalizeEngine {
     my $self = shift;
-    if ( $self->engineName ne 'localhost' ) {
+
+    if ( $self->engineName eq 'multihost' ) {
         $self->_cmdWrapper->finalize;
     }
 }
 
 sub _build_cmdWrapper {
     my $self = shift;
+    croak
+      "cmdWrapper usage is not implemented fully yet.  Need to add hosts file";
     return DM::WrapCmd->new(
         globalTmpDir    => $self->globalTmpDir,
         hostsFile       => $self->hostsFile,
@@ -99,14 +107,17 @@ sub _cmdPrefix {
 
     my $cmdprefix = "";
     if ( $self->engineName eq 'SGE' ) {
-        $cmdprefix = "qsub -sync y -cwd -V -b yes -j y"
+        $cmdprefix = "qsub -sync y -cwd -V -b yes "
           . (
             defined $self->memRequest
             ? q/ -l h_vmem=/ . $self->memRequest . q/G/
             : q//
           )
           . " -o "
-          . $self->outputFile . " -N "
+          . $self->outputFile
+          . (
+            defined $self->errFile ? " -j no -e " . $self->errFile : " -j yes" )
+          . " -N "
           . $self->jobName;
         $cmdprefix .=
           ( defined( $self->projectName ) )
@@ -157,18 +168,25 @@ sub _mod_commands {
         # protect single quotes if running on SGE
         # perhaps this could be an issue with one-liners
         #using double quotes? -- winni
-        #        if ( $self->engineName eq q/SGE/ ) {
-        #            $modcmd =~ s/'/"'/g;
-        #            $modcmd =~ s/'/'"/g;
-        #            $modcmd =~ s/\$/\$\$/g;
-        #        }
-
-        # protect $ signs from make by turning them into $$
-        if ( $self->engineName eq q/localhost/ ) {
+        # TODO move this code into cmdWrapper
+        # don't forget to change _finalizeEngine code as 
+        # well when that happens
+        if ( $self->engineName eq q/SGE/ ) {
+            $modcmd =~ s/'/"'/g;
+            $modcmd =~ s/'/'"/g;
             $modcmd =~ s/\$/\$\$/g;
         }
-        else {
+
+        # protect $ signs from make by turning them into $$
+        elsif ( $self->engineName eq q/localhost/ ) {
+            $modcmd =~ s/\$/\$\$/g;
+        }
+        elsif ( $self->engineName eq q/multihost/ ) {
             $modcmd = $self->_cmdWrapper->wrapCmd($modcmd);
+        }
+        else {
+            confess "Programming error. Unexpected engineName: "
+              . $self->engineName;
         }
 
         push( @modcmds,
@@ -308,11 +326,11 @@ __END__
 
 =head1 NAME
 
-DM::Distributer
+DM::Distributer - DM::Distributer is a role whose purpose is to rewrite job commands such that they will run on an SGE or multiple hosts.
 
 =head1 VERSION
 
-version 0.2.12
+version 0.014
 
 =head 2 jobAsMake()
 

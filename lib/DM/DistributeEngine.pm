@@ -1,5 +1,7 @@
 package DM::DistributeEngine;
-$DM::DistributeEngine::VERSION = '0.2.12'; # TRIAL
+$DM::DistributeEngine::VERSION = '0.014'; # TRIAL
+# ABSTRACT: Class to hold the information associated with an engine.
+
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -35,11 +37,11 @@ __END__
 
 =head1 NAME
 
-DM::DistributeEngine
+DM::DistributeEngine - Class to hold the information associated with an engine.
 
 =head1 VERSION
 
-version 0.2.12
+version 0.014
 
 =head1 AUTHOR
 

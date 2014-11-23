@@ -36,7 +36,7 @@ my %WriteMakefileArgs = (
     "MooseX::StrictConstructor" => 0,
     "Net::OpenSSH" => 0,
     "Sys::Hostname" => 0,
-    "YAML::XS" => 0,
+    "YAML::Tiny" => 0,
     "namespace::autoclean" => 0,
     "strict" => 0,
     "warnings" => 0
@@ -45,9 +45,10 @@ my %WriteMakefileArgs = (
     "File::Path" => 0,
     "FindBin" => 0,
     "Test::Files" => 0,
-    "Test::More" => 0
+    "Test::More" => 0,
+    "strictures" => 0
   },
-  "VERSION" => "0.2.12",
+  "VERSION" => "0.014",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -71,9 +72,10 @@ my %FallbackPrereqs = (
   "Sys::Hostname" => 0,
   "Test::Files" => 0,
   "Test::More" => 0,
-  "YAML::XS" => 0,
+  "YAML::Tiny" => 0,
   "namespace::autoclean" => 0,
   "strict" => 0,
+  "strictures" => 0,
   "warnings" => 0
 );
 

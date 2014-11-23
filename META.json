@@ -39,7 +39,7 @@
             "MooseX::StrictConstructor" : "0",
             "Net::OpenSSH" : "0",
             "Sys::Hostname" : "0",
-            "YAML::XS" : "0",
+            "YAML::Tiny" : "0",
             "namespace::autoclean" : "0",
             "perl" : "5.006",
             "strict" : "0",
@@ -51,11 +51,12 @@
             "File::Path" : "0",
             "FindBin" : "0",
             "Test::Files" : "0",
-            "Test::More" : "0"
+            "Test::More" : "0",
+            "strictures" : "0"
          }
       }
    },
    "release_status" : "testing",
-   "version" : "0.2.12"
+   "version" : "0.014"
 }
 

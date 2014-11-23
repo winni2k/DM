@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.2.12'; # TRIAL
+$DM::VERSION = '0.014'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -12,6 +12,8 @@ use DM::JobArray;
 use DM::Job;
 use DM::Distributer;
 use DM::TypeDefs;
+
+# ABSTRACT: Distributed Make: A perl module for running pipelines
 
 
 # Input Variables
@@ -41,16 +43,6 @@ has tmpdir  => ( is => 'ro', isa => 'Str',           default => '/tmp' );
 has target  => ( is => 'ro', isa => 'Str',           default => 'all' );
 has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
 
-# job array related information
-# check for undef to determine if job array has been
-# started but not ended
-has _currentJA => (
-    is       => 'rw',
-    isa      => 'Maybe[DM::JobArray]',
-    init_arg => undef,
-    default  => undef
-);
-
 has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
 has _makefile => (
@@ -77,13 +69,18 @@ sub addRule {
     my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) =
       @_;
 
-    $self->job(
-        DM::Job->new(
-            targets  => $targetsref,
-            prereqs  => $dependenciesref,
-            commands => $cmdsref
-        )
+    my @jobArgs = (
+        targets  => $targetsref,
+        prereqs  => $dependenciesref,
+        commands => $cmdsref
     );
+
+    # allow overriding of job name
+    if ( exists $batchjoboverrides{name} ) {
+        push @jobArgs, ( name => $batchjoboverrides{name} );
+        delete $batchjoboverrides{name};
+    }
+    $self->job( DM::Job->new(@jobArgs) );
 
     # Setup the user's commands, taking care of imposing memory limits and
     # adding in cluster prefix commands
@@ -129,7 +126,11 @@ sub execute {
 
     print { $self->_makefile } "all: "
       . join( " ", @{ $self->{'targets'} } ) . "\n\n";
-    print { $self->_makefile } ".DELETE_ON_ERROR:\n";
+    print { $self->_makefile } ".DELETE_ON_ERROR:\n\n";
+
+    # run all recipes in bash shell instead of sh
+    print { $self->_makefile }
+      "export SHELL=/bin/bash\n.SHELLLFLAGS = -o pipefail\n\n";
 
     my %makeargs = (
         dryRun         => $self->dryRun,
@@ -175,6 +176,32 @@ sub execute {
 }
 
 
+# job array related information
+# check for undef to determine if job array has been
+# started but not ended
+has _currentJA => (
+    is       => 'rw',
+    isa      => 'Maybe[DM::JobArray]',
+    init_arg => undef,
+    default  => undef
+);
+has _currentJASGEJobNum =>
+  ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+has _pastJASGEJobNum => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+
+## initialize temp files to hold targets, commands and prereqs for job array
+for my $name (qw(commands targets prereqs)) {
+    my $builder = '_build_' . $name;
+    has $name
+      . "File" => (
+        is      => 'ro',
+        isa     => 'File::Temp',
+        builder => '_build_' . $name,
+        lazy    => 1
+      );
+}
+
+
 sub startJobArray {
     my ( $self, %overrides ) = @_;
 
@@ -183,20 +210,33 @@ sub startJobArray {
 
     my %args = (
         target => undef,
-        name   => 'DM::JobArray',
+        name   => 'DMJobArray',
         %overrides,
     );
+
+    my %extraArgs = %args;
+    delete $extraArgs{target};
+    delete $extraArgs{name};
+
+    croak "Need to define globalTmpDir through DM constructor"
+      unless defined $self->globalTmpDir;
 
     # definition of jobArrayObject
     # globalTmpDir cannot be overridden, too many headaches otherwise
     my $jobArrayObject = DM::JobArray->new(
         globalTmpDir => $self->globalTmpDir,
         name         => $args{name},
-        target       => $args{target}
+        target       => $args{target},
+        targetsFile  => $self->targetsFile,
+        prereqsFile  => $self->prereqsFile,
+        commandsFile => $self->commandsFile,
+        extraArgs    => \%extraArgs,
     );
 
     # save new object
     $self->_currentJA($jobArrayObject);
+    $self->_currentJASGEJobNum(0);
+
     return $jobArrayObject;
 }
 
@@ -204,7 +244,6 @@ sub startJobArray {
 sub addJobArrayRule {
     my $self = shift;
     my %jobArgs;
-    my %origArgs;
 
     # check to make sure startJobArray() has been run
     die "need to run startJobArray() first"
@@ -225,11 +264,8 @@ sub addJobArrayRule {
             $jobArgs{$arg} = delete $args{$arg};
         }
 
-        # set engine args
-        for my $arg ( sort keys %args ) {
-            $origArgs{$arg} = $self->$arg;
-            $self->$arg( $args{$arg} );
-        }
+        croak "please specify extra engine args at job array start"
+          if keys %args;
     }
 
     # parse job args by creating a job object
@@ -246,11 +282,7 @@ sub addJobArrayRule {
     }
     else {
         $self->_currentJA->addSGEJob($job);
-    }
-
-    # return engine args back to original state
-    for my $arg ( sort keys %origArgs ) {
-        $self->$arg( $origArgs{$arg} );
+        $self->_currentJASGEJobNum( $self->_currentJASGEJobNum + 1 );
     }
 }
 
@@ -265,6 +297,9 @@ sub endJobArray {
     # determine how many tasks to kick off in job array
     my $arrayTasks = @{ $self->_currentJA->arrayTargets };
 
+    # change engineParameters stored in extraArgs
+    my %extraArgs = %{ $self->_currentJA->extraArgs };
+
     # add job array rule
     #  makes sure target is touched when everything ran through successfully
     my $target = $self->_currentJA->target;
@@ -275,21 +310,59 @@ sub endJobArray {
             " -t 1-$arrayTasks:1  sge_job_array.pl  -t "
               . $self->_currentJA->targetsFile . ' -p '
               . $self->_currentJA->prereqsFile . ' -c '
-              . $self->_currentJA->commandsFile
+              . $self->_currentJA->commandsFile . ' -o '
+              . $self->_pastJASGEJobNum
               . " && touch $target",
-            jobName => $self->_currentJA->name
+            jobName => $self->_currentJA->name,
+            %extraArgs
         );
+        $self->_pastJASGEJobNum(
+            $self->_pastJASGEJobNum + $self->_currentJASGEJobNum );
     }
     else {
         $self->addRule(
             $self->_currentJA->target, $self->_currentJA->arrayTargets,
-            "touch $target", jobName => $self->_currentJA->name
+            "touch $target",
+            jobName => $self->_currentJA->name,
+            %extraArgs
         );
 
     }
 
     $self->_currentJA->flushFiles;
     $self->_currentJA(undef);
+
+}
+
+# routines to build the temporary command, target and prereq files
+sub _build_commands {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'commands' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
+}
+
+sub _build_targets {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'targets' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
+}
+
+sub _build_prereqs {
+    my $self = shift;
+    return File::Temp->new(
+        TEMPLATE => 'prereqs' . '_XXXXXX',
+        DIR      => $self->globalTmpDir,
+        UNLINK   => 1
+    );
+
 }
 
 
@@ -303,11 +376,11 @@ __END__
 
 =head1 NAME
 
-DM
+DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.2.12
+version 0.014
 
 =head1 SYNOPSIS
 
@@ -333,18 +406,6 @@ $dm->execute();
 =head1 DESCRIPTION
 
 DM is a perl module for running pipelines.  DM is based on GNU make.  Currently, DM supports running on a single computer or an SGE managed cluster.
-
-=head1 NAME
-
-DM - Distributed Make: A perl module for running pipelines
-
-=head1 VERSION
-
-0.2.8
-
-=head1 CHANGES
-
-See Changes file
 
 =head1 GOOD PRACTICE
 
@@ -396,6 +457,10 @@ If true, touch all targets such that make will think that all files have been ma
 
 Corresponds to -i option in GNU make.
 
+=item outputFile [distributedmake.log]
+
+Log file
+
 =back
 
 =head2 SGE specific options
@@ -404,9 +469,9 @@ These options are passed to qsub for submitting jobs on an SGE cluster
 
 =over
 
-=item cluster undef
+=item engineName undef
 
-Type of cluster (localhost, SGE, PBS, LSF).  Is detected automagically by DM.
+Type of engine (localhost, SGE, PBS, LSF).  Is detected automagically by DM.
 
 =item queue undef
 
@@ -507,8 +572,10 @@ Only the target specified in startJobArray() should be used as a prerequisite fo
 =head2 startJobArray()
 
 daes nothing unless 'cluster' eq 'SGE'.
-Requires 'target' and 'globalTmpDir' to be specified as key value pairs:
-    startJobArray(target=>$mytarget, globalTmpDir=>$mytmpdir)
+Requires 'target' to be specified as key value pairs:
+    startJobArray(target=>$mytarget)
+
+Add in overrides at this point.  They will be applied at endJobArray().
 
 =head2 addJobArrayRule()
 
@@ -550,55 +617,11 @@ none
 
 The target of the job array
 
-=head1 AUTHORS
-
-Kiran V Garimella <kiran@well.ox.ac.uk> and Warren W. Kretzschmar <warren.kretzschmar@well.ox.ac.uk>
-
 =head1 BUGS
 
 Please report any bugs or feature requests to C<bug-dm at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=DM>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
-
-=head1 SUPPORT
-
-You can find documentation for this module with the perldoc command.
-
-    perldoc DM
-
-You can also look for information at:
-
-=over 4
-
-=item * RT: CPAN's request tracker (report bugs here)
-
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=DM>
-
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/DM>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/DM>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/DM/>
-
-=back
-
-=head1 ACKNOWLEDGEMENTS
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright 2012 Kiran V Garimella.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
-
-See http://dev.perl.org/licenses/ for more information.
 
 =head1 AUTHOR
 

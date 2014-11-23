@@ -1,13 +1,15 @@
 #!/usr/bin/perl -w
 
+# ABSTRACT: This script is called by DM when running in multihost mode.
+
 
 package DMWrapper;
-$DMWrapper::VERSION = '0.2.12'; # TRIAL
+$DMWrapper::VERSION = '0.014'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
 use namespace::autoclean;
-use YAML::XS;
+use YAML::Tiny;
 use File::NFSLock;
 use Carp;
 use Net::OpenSSH;
@@ -74,7 +76,7 @@ has _chosenHost => ( is => 'rw', isa => 'Str', default => 'localhost' );
 
 sub _build_hosts {
     my $self     = shift;
-    my @hostRefs = YAML::XS::LoadFile( $self->hostsFile );
+    my @hostRefs = YAML::Tiny::LoadFile( $self->hostsFile );
     my @hosts;
     for my $hostRef (@hostRefs) {
         my @keys = keys %{$hostRef};
@@ -104,7 +106,7 @@ sub _build_hostLockFiles {
 
 sub _build_jobs {
     my $self = shift;
-    my @jobs = YAML::XS::LoadFile( $self->dataFile );
+    my @jobs = YAML::Tiny::LoadFile( $self->dataFile );
 
     croak $self->tag
       . " Input job number is larger than jobs in data file: "
@@ -224,20 +226,16 @@ __END__
 
 =head1 NAME
 
-DMWrapper
+DMWrapper - This script is called by DM when running in multihost mode.
 
 =head1 VERSION
 
-version 0.2.12
+version 0.014
 
 =head1 SYNOPSIS
 
 # run the second command in the mycommands.yaml
 DMWrapCmd -n 1 -d mycommands.yaml
-
-=head1 NAME
-
-DMWrapCmd.pl
 
 =head1 AUTHOR
 

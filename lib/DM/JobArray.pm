@@ -1,5 +1,8 @@
 package DM::JobArray;
-$DM::JobArray::VERSION = '0.2.12'; # TRIAL
+$DM::JobArray::VERSION = '0.014'; # TRIAL
+# ABSTRACT: This is the DM::JobArray class.
+
+
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -24,6 +27,16 @@ before globalTmpDir => sub {
     }
 };
 
+## initialize temp files to hold targets, commands and prereqs for job array
+for my $name (qw(commands targets prereqs)) {
+    has $name
+      . "File" => (
+        is       => 'ro',
+        isa      => 'File::Temp',
+        required => 1,
+      );
+}
+
 # private variables
 has _jobs => (
     is       => 'rw',
@@ -32,19 +45,10 @@ has _jobs => (
     default  => sub { [] }
 );
 
-# output variables
-## initialize temp files to hold targets, commands and prereqs for job array
-for my $name (qw(commands targets prereqs)) {
-    my $builder = '_build_' . $name;
-    has $name
-      . "File" => (
-        is      => 'ro',
-        isa     => 'File::Temp',
-        builder => '_build_' . $name,
-        lazy    => 1
-      );
-}
+# job overrides are in this hash
+has extraArgs => ( is => 'ro', isa => 'Maybe[HashRef]', default => undef );
 
+# output variables
 sub flushFiles {
     my $self = shift;
     for my $name (qw(commands targets prereqs)) {
@@ -70,8 +74,9 @@ sub addSGEJob {
         push( @precmds, $mkdircmd );
     }
 
-    my @commands = @{$job->commands};
-    croak "[DM::JobArray] does not support multi-line commands in SGE mode" if @commands > 1;
+    my @commands = @{ $job->commands };
+    croak "[DM::JobArray] does not support multi-line commands in SGE mode"
+      if @commands > 1;
     print { $self->commandsFile } join( q/ && /, ( @precmds, @commands ) )
       . "\n";
 
@@ -103,36 +108,6 @@ sub arrayPrereqs {
     return \@pre;
 }
 
-sub _build_commands {
-    my $self = shift;
-    return File::Temp->new(
-        TEMPLATE => 'commands' . '_XXXXXX',
-        DIR      => $self->globalTmpDir,
-        UNLINK   => 1
-    );
-
-}
-
-sub _build_targets {
-    my $self = shift;
-    return File::Temp->new(
-        TEMPLATE => 'targets' . '_XXXXXX',
-        DIR      => $self->globalTmpDir,
-        UNLINK   => 1
-    );
-
-}
-
-sub _build_prereqs {
-    my $self = shift;
-    return File::Temp->new(
-        TEMPLATE => 'prereqs' . '_XXXXXX',
-        DIR      => $self->globalTmpDir,
-        UNLINK   => 1
-    );
-
-}
-
 __PACKAGE__->meta->make_immutable;
 
 1;
@@ -145,11 +120,11 @@ __END__
 
 =head1 NAME
 
-DM::JobArray
+DM::JobArray - This is the DM::JobArray class.
 
 =head1 VERSION
 
-version 0.2.12
+version 0.014
 
 =head1 SYNOPSIS
 
@@ -168,27 +143,6 @@ version 0.2.12
    # flush all temp files
    # this should really be done automatically somehow
    $ja->flushFiles;
-
-=head1 DESCRIPTION
-
-This is the DM::JobArray class.
-
-=head1 NAME
-
-DM::Job
-
-=head1 SEE ALSO
-
-DM
-DM::Job
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014 by Warren Winfried Kretzschmar
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.2 or,
-at your option, any later version of Perl 5 you may have available.
 
 =head1 AUTHOR
 

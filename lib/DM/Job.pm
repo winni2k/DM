@@ -1,5 +1,8 @@
 package DM::Job;
-$DM::Job::VERSION = '0.2.12'; # TRIAL
+$DM::Job::VERSION = '0.014'; # TRIAL
+# ABSTRACT: This is the DM::Job class.  Not too exciting.  Defines everything a job needs to know about.
+
+
 use Moose;
 use MooseX::StrictConstructor;
 use Moose::Util::TypeConstraints;
@@ -50,36 +53,16 @@ __END__
 
 =head1 NAME
 
-DM::Job
+DM::Job - This is the DM::Job class.  Not too exciting.  Defines everything a job needs to know about.
 
 =head1 VERSION
 
-version 0.2.12
+version 0.014
 
 =head1 SYNOPSIS
 
    use DM::Job;
    my $job = DM::Job->new(target=>'XYZ', prereqs=>[qw/X Y Z/], command => 'cat X Y Z');
-
-=head1 DESCRIPTION
-
-This is the DM::Job class.  Not too exciting.  Defines everything a job needs to know about.
-
-=head1 NAME
-
-DM::Job
-
-=head1 SEE ALSO
-
-DM
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 2014 by Warren Winfried Kretzschmar
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.2 or,
-at your option, any later version of Perl 5 you may have available.
 
 =head1 AUTHOR
 
