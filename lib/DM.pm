@@ -469,9 +469,9 @@ These options are passed to qsub for submitting jobs on an SGE cluster
 
 =over
 
-=item cluster undef
+=item engineName undef
 
-Type of cluster (localhost, SGE, PBS, LSF).  Is detected automagically by DM.
+Type of engine (localhost, SGE, PBS, LSF).  Is detected automagically by DM.
 
 =item queue undef
 
