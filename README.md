@@ -53,6 +53,7 @@ After installation the man page is available through:
 ## Changes
 
 0.014     2014-11-23 12:47:13+00:00 Europe/London (TRIAL RELEASE)
+
         Made /bin/bash the default shell to run recipes under.
         Fixed bug in SGE job array dispatch where dispatcher would not
         move farther down the list of commands after the first job
@@ -64,22 +65,27 @@ After installation the man page is available through:
         DM::Distributer::projectName and queue may now be undef as well
 
 0.2.12  2014-03-04 18:05:13+00:00 Europe/London (TRIAL RELEASE)
+
         Made DM::Distributer a role instead of a class.
         DM::Distributer variables can now be set directly through
         calls to DM objects.
 
 0.2.11  2014-02-26 23:29:21+00:00 Europe/London (TRIAL RELEASE)
+
         Rearranged dzil release process.  This is a test to see if
         everything works as expected. 
 
 0.2.10  2014-02-26 17:35:52+00:00 Europe/London (TRIAL RELEASE)
+
         Trying to get the dzil build just right so that builds can
         be seen on the build and release branches          
 
 0.2.9   Wed Feb 26 15:48:11 GMT 2014
+
         Trying to get dist zilla to get through all the author tests
 
 0.2.7   Mon Feb 17 22:34:14 GMT 2014
+
         Added option to turn of post command touching of targets
         using the postCmdTouch batch job override
 
