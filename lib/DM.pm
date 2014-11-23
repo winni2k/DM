@@ -90,6 +90,10 @@ If true, touch all targets such that make will think that all files have been ma
 
 Corresponds to -i option in GNU make.
 
+=item outputFile [distributedmake.log]
+
+Log file
+
 =back
 
 =head2 SGE specific options
@@ -98,9 +102,9 @@ These options are passed to qsub for submitting jobs on an SGE cluster
 
 =over
 
-=item cluster undef
+=item engineName undef
 
-Type of cluster (localhost, SGE, PBS, LSF).  Is detected automagically by DM.
+Type of engine (localhost, SGE, PBS, LSF).  Is detected automagically by DM.
 
 =item queue undef
 
@@ -305,7 +309,8 @@ sub execute {
     print { $self->_makefile } ".DELETE_ON_ERROR:\n\n";
 
     # run all recipes in bash shell instead of sh
-    print { $self->_makefile } "export SHELL=/bin/bash -o pipefail\n";
+    print { $self->_makefile }
+      "export SHELL=/bin/bash\n.SHELLLFLAGS = -o pipefail\n\n";
 
     my %makeargs = (
         dryRun         => $self->dryRun,
@@ -371,8 +376,9 @@ has _currentJA => (
     init_arg => undef,
     default  => undef
 );
-has _currentJASGEJobNum => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
-has _pastJASGEJobNum    => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+has _currentJASGEJobNum =>
+  ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
+has _pastJASGEJobNum => ( is => 'rw', isa => 'DM::PositiveNum', default => 0 );
 
 ## initialize temp files to hold targets, commands and prereqs for job array
 for my $name (qw(commands targets prereqs)) {
@@ -552,7 +558,8 @@ sub endJobArray {
             jobName => $self->_currentJA->name,
             %extraArgs
         );
-        $self->_pastJASGEJobNum($self->_pastJASGEJobNum + $self->_currentJASGEJobNum);
+        $self->_pastJASGEJobNum(
+            $self->_pastJASGEJobNum + $self->_currentJASGEJobNum );
     }
     else {
         $self->addRule(
