@@ -91,30 +91,30 @@ After installation the man page is available through:
 
 0.2.6  Mon Dec 16 16:22:03 GMT 2013
 
-Cluster engines that are not supported are now ignored with an
-error if their binaries are found on the system.
+        Cluster engines that are not supported are now ignored with an
+        error if their binaries are found on the system.
 
 0.2.5  Mon Dec 16 15:43:58 GMT 2013
 
-Added return of exit status from execute().
+        Added return of exit status from execute().
 
 0.2.1   Tue  5 Mar 2013 17:08:54 GMT
 
-Fixed bug in dist.ini where files in the scripts directory were not
-being treated as executable files. 
+        Fixed bug in dist.ini where files in the scripts directory were not
+        being treated as executable files. 
 
 0.2     Tue  5 Mar 2013 13:09:43 GMT
 
-Renamed DistributedMake::base to DM.
-Added more documentation to prep DM for release into the wild.
+        Renamed DistributedMake::base to DM.
+        Added more documentation to prep DM for release into the wild.
 
 0.1.4
 
-Added support for SGE job arrrays.
+        Added support for SGE job arrrays.
 
 0.0.8
 
-First stable version.
+        First stable version.
 
 ## Bug Reports
 
