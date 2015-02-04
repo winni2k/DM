@@ -52,7 +52,8 @@ After installation the man page is available through:
 
 ## Changes
 
-0.015  --  
+0.015  --  2015-02-04 15:13:26+00:00 Europe/London (TRIAL RELEASE)  
+
         Turned off built-in rules when calling make (seriously, who actually uses SCCS anymore?)
 
 0.014  --  2014-11-23 12:47:13+00:00 Europe/London (TRIAL RELEASE)
