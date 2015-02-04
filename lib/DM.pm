@@ -328,6 +328,7 @@ sub execute {
     my $numjobs = $makeargs{'numJobs'};
 
     my $makecmd = "make"
+      . (" -r") # no-one would ever want builtin rules, right?
       . ( $makeargs{dryRun}         ? " -n" : "" )
       . ( $makeargs{keepGoing}      ? " -k" : "" )
       . ( $makeargs{alwaysMake}     ? " -B" : "" )

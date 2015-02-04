@@ -52,6 +52,9 @@ After installation the man page is available through:
 
 ## Changes
 
+0.015  --
+        Turned off built-in rules when calling make (seriously, who actually uses SCCS anymore?)
+
 0.014  --   2014-11-23 12:47:13+00:00 Europe/London (TRIAL RELEASE)
 
         Made /bin/bash the default shell to run recipes under.
