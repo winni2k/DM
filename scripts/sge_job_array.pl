@@ -89,7 +89,7 @@ sge_job_array.pl - This script is used by Job Arrays to check prerequisites and 
 
 =head1 VERSION
 
-version 0.014
+version 0.015
 
 =head1 AUTHOR
 
@@ -97,7 +97,7 @@ Kiran V Garimella <kiran@well.ox.ac.uk> and Warren W. Kretzschmar <warren.kretzs
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Kiran V Garimella and Warren Kretzschmar.
+This software is copyright (c) 2015 by Kiran V Garimella and Warren Kretzschmar.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
