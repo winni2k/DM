@@ -67,12 +67,12 @@ foreach my $prereq ( split( /\s+/, $prereqs ) ) {
 }
 
 if ($run_command) {
-    system($command );
-    my $exit_val = $? & 127;
-    if ( $exit_val > 0 ) {
+    my $exit_val = system($command );
+
+    if ( $exit_val != 0 ) {
         unlink $target;
     }
-    exit($exit_val);
+    exit($exit_val >> 8);
 }
 
 exit(0);
