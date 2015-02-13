@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.014'; # TRIAL
+$DM::VERSION = '0.016'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -148,6 +148,7 @@ sub execute {
     my $numjobs = $makeargs{'numJobs'};
 
     my $makecmd = "make"
+      . (" -r") # no-one would ever want builtin rules, right?
       . ( $makeargs{dryRun}         ? " -n" : "" )
       . ( $makeargs{keepGoing}      ? " -k" : "" )
       . ( $makeargs{alwaysMake}     ? " -B" : "" )
@@ -380,7 +381,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.014
+version 0.016
 
 =head1 SYNOPSIS
 
@@ -629,7 +630,7 @@ Kiran V Garimella <kiran@well.ox.ac.uk> and Warren W. Kretzschmar <warren.kretzs
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Kiran V Garimella and Warren Kretzschmar.
+This software is copyright (c) 2015 by Kiran V Garimella and Warren Kretzschmar.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

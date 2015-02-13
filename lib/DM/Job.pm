@@ -1,5 +1,5 @@
 package DM::Job;
-$DM::Job::VERSION = '0.014'; # TRIAL
+$DM::Job::VERSION = '0.016'; # TRIAL
 # ABSTRACT: This is the DM::Job class.  Not too exciting.  Defines everything a job needs to know about.
 
 
@@ -57,7 +57,7 @@ DM::Job - This is the DM::Job class.  Not too exciting.  Defines everything a jo
 
 =head1 VERSION
 
-version 0.014
+version 0.016
 
 =head1 SYNOPSIS
 
@@ -70,7 +70,7 @@ Kiran V Garimella <kiran@well.ox.ac.uk> and Warren W. Kretzschmar <warren.kretzs
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Kiran V Garimella and Warren Kretzschmar.
+This software is copyright (c) 2015 by Kiran V Garimella and Warren Kretzschmar.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

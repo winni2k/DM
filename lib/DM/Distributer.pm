@@ -1,5 +1,5 @@
 package DM::Distributer;
-$DM::Distributer::VERSION = '0.014'; # TRIAL
+$DM::Distributer::VERSION = '0.016'; # TRIAL
 # ABSTRACT: DM::Distributer is a role whose purpose is to rewrite job commands such that they will run on an SGE or multiple hosts.
 
 use Moose::Role;
@@ -330,7 +330,7 @@ DM::Distributer - DM::Distributer is a role whose purpose is to rewrite job comm
 
 =head1 VERSION
 
-version 0.014
+version 0.016
 
 =head 2 jobAsMake()
 
@@ -349,7 +349,7 @@ Kiran V Garimella <kiran@well.ox.ac.uk> and Warren W. Kretzschmar <warren.kretzs
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2014 by Kiran V Garimella and Warren Kretzschmar.
+This software is copyright (c) 2015 by Kiran V Garimella and Warren Kretzschmar.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
