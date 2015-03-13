@@ -41,7 +41,7 @@ has memLimit => ( is => 'rw', isa => 'DM::PositiveNum', default => 4 );
 # make options
 has tmpdir  => ( is => 'ro', isa => 'Str',           default => '/tmp' );
 has target  => ( is => 'ro', isa => 'Str',           default => 'all' );
-has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
+has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { {} } );
 
 has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
@@ -64,6 +64,11 @@ sub _build_makefile {
     );
 }
 
+
+sub ar {
+    my $self = shift;
+    return $self->addRule(@_);
+}
 
 sub addRule {
     my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) =
@@ -106,7 +111,11 @@ sub addRule {
     # Emit the makefile commands
     print { $self->_makefile } $self->jobAsMake;
 
-    push( @{ $self->targets }, $self->job->target );
+    # check if target already exists
+    # if so, croak
+    my $target = $self->job->target;
+    croak "Target defined twice [$target" if exists $self->targets->{$target};
+    $self->targets->{$target} = 1;
 
     # undo temporary overrides
     for my $key ( sort keys %origOverrides ) {
@@ -125,7 +134,7 @@ sub execute {
       if defined $self->_currentJA;
 
     print { $self->_makefile } "all: "
-      . join( " ", @{ $self->{'targets'} } ) . "\n\n";
+      . join( " ", sort values %{ $self->targets } ) . "\n\n";
     print { $self->_makefile } ".DELETE_ON_ERROR:\n\n";
 
     # run all recipes in bash shell instead of sh
@@ -147,8 +156,8 @@ sub execute {
 
     my $numjobs = $makeargs{'numJobs'};
 
-    my $makecmd = "make"
-      . (" -r") # no-one would ever want builtin rules, right?
+    my $makecmd =
+      "make" . (" -r")    # no-one would ever want builtin rules, right?
       . ( $makeargs{dryRun}         ? " -n" : "" )
       . ( $makeargs{keepGoing}      ? " -k" : "" )
       . ( $makeargs{alwaysMake}     ? " -B" : "" )
@@ -241,6 +250,11 @@ sub startJobArray {
     return $jobArrayObject;
 }
 
+
+sub ajar {
+    my $self = shift;
+    return $self->addJobArrayRule(@_);
+}
 
 sub addJobArrayRule {
     my $self = shift;
@@ -526,7 +540,11 @@ DM object
 
 =head2 addRule()
 
-This function creates a basic dependency between a prerequisite, target and command.  The prerequisite is a file that is required to exist in order to create the target file.  The command is used to create the target file from the prerequisite.
+This function creates a basic dependency between a prerequisite, target and command.  The prerequisite is a file that is required to exist in order to create the target file.  The command is used to create the target file from the prerequisite(s).
+
+=head3 Alias
+
+ar()
 
 =over
 
@@ -581,6 +599,10 @@ Add in overrides at this point.  They will be applied at endJobArray().
 =head2 addJobArrayRule()
 
 This structure is designed to work with SGE's job array functionality.  Any rules added to a jobArray structure will be treated as simple add rules when running on localhost, LSF or PBS, but will be executed as a jobArray on SGE.
+
+=head3 Alias
+
+ajar()
 
 =head3 Required Arguments
 

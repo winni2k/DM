@@ -1,4 +1,10 @@
 0.016     2015-02-13 10:09:59+00:00 Europe/London (TRIAL RELEASE)
+        Add option to wrap normal addRule commands in commands file
+        Add throwing error on duplicate targets
+        Add replacement of JAtargets by their flag in prereqs
+        Add automagic md5sum based JAtarget creation
+
+0.016     2015-02-13 10:09:59+00:00 Europe/London (TRIAL RELEASE)
         sge_job_array.pl now returns correct code on error
 
 0.015     2015-02-04 15:13:26+00:00 Europe/London (TRIAL RELEASE)
