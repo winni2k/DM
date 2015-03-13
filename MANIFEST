@@ -21,6 +21,7 @@ scripts/DMWrapCmd.pl
 scripts/sge_job_array.pl
 t/00-load.t
 t/01-syntax.t
+t/05-check_multitargets.t
 t/10-dollar_sign_conversion.t
 t/50-job_array.dir/commands.expected
 t/50-job_array.dir/prereqs.expected

@@ -50,6 +50,7 @@
          "requires" : {
             "File::Path" : "0",
             "FindBin" : "0",
+            "Test::Exception" : "0",
             "Test::Files" : "0",
             "Test::More" : "0",
             "strictures" : "0"
