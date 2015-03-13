@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.016'; # TRIAL
+$DM::VERSION = '0.017'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -41,7 +41,7 @@ has memLimit => ( is => 'rw', isa => 'DM::PositiveNum', default => 4 );
 # make options
 has tmpdir  => ( is => 'ro', isa => 'Str',           default => '/tmp' );
 has target  => ( is => 'ro', isa => 'Str',           default => 'all' );
-has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { {} } );
+has targets => ( is => 'ro', isa => 'HashRef[Str]', default => sub { {} } );
 
 has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
@@ -395,7 +395,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.016
+version 0.017
 
 =head1 SYNOPSIS
 

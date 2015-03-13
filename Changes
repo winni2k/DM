@@ -1,4 +1,4 @@
-0.016     2015-02-13 10:09:59+00:00 Europe/London (TRIAL RELEASE)
+0.017     2015-02-13 10:09:59+00:00 Europe/London (TRIAL RELEASE)
         Add option to wrap normal addRule commands in commands file
         Add throwing error on duplicate targets
         Add replacement of JAtargets by their flag in prereqs
