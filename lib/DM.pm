@@ -8,6 +8,7 @@ use 5.006;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;
 use Carp;
+use Cwd qw/realpath/;
 use DM::JobArray;
 use DM::Job;
 use DM::Distributer;
@@ -181,9 +182,12 @@ has unlinkTmp => ( is => 'ro', isa => 'Bool', default => 1 );
 has memLimit => ( is => 'rw', isa => 'DM::PositiveNum', default => 4 );
 
 # make options
-has tmpdir  => ( is => 'ro', isa => 'Str',           default => '/tmp' );
-has target  => ( is => 'ro', isa => 'Str',           default => 'all' );
-has targets => ( is => 'ro', isa => 'ArrayRef[Str]', default => sub { [] } );
+has tmpdir  => ( is => 'ro', isa => 'Str',          default => '/tmp' );
+has target  => ( is => 'ro', isa => 'Str',          default => 'all' );
+has targets => ( is => 'ro', isa => 'HashRef[Str]', default => sub { {} } );
+has prereqs => ( is => 'ro', isa => 'HashRef[Str]', default => sub { {} } );
+has jaInternalTargets =>
+  ( is => 'ro', isa => 'HashRef[Str]', default => sub { {} } );
 
 has globalTmpDir => ( is => 'ro', isa => 'Maybe[Str]', default => undef );
 
@@ -208,7 +212,11 @@ sub _build_makefile {
 
 =head2 addRule()
 
-This function creates a basic dependency between a prerequisite, target and command.  The prerequisite is a file that is required to exist in order to create the target file.  The command is used to create the target file from the prerequisite.
+This function creates a basic dependency between a prerequisite, target and command.  The prerequisite is a file that is required to exist in order to create the target file.  The command is used to create the target file from the prerequisite(s).
+
+=head3 Alias
+
+ar()
 
 =over
 
@@ -227,6 +235,11 @@ none
 =back
 
 =cut
+
+sub ar {
+    my $self = shift;
+    return $self->addRule(@_);
+}
 
 sub addRule {
     my ( $self, $targetsref, $dependenciesref, $cmdsref, %batchjoboverrides ) =
@@ -248,15 +261,17 @@ sub addRule {
     # Setup the user's commands, taking care of imposing memory limits and
     # adding in cluster prefix commands
     my @cmds = @{ $self->job->commands };
-    for ( my $i = 0 ; $i <= $#cmds ; $i++ ) {
-        if (   $cmds[$i] =~ /^java /
-            && $cmds[$i] =~ / -jar /
-            && $cmds[$i] !~ / -Xmx/ )
-        {
-            my $memLimit = $self->memLimit;
-            $cmds[$i] =~ s/^java /java -Xmx${memLimit}g /;
-        }
-    }
+
+    #   DM is not the place for java mem limit imposition. sorry...
+    #    for ( my $i = 0 ; $i <= $#cmds ; $i++ ) {
+    #        if (   $cmds[$i] =~ /^java /
+    #            && $cmds[$i] =~ / -jar /
+    #            && $cmds[$i] !~ / -Xmx/ )
+    #        {
+    #            my $memLimit = $self->memLimit;
+    #            $cmds[$i] =~ s/^java /java -Xmx${memLimit}g /;
+    #        }
+    #    }
     $self->job->commands( \@cmds );
 
     # setting batchjob overrides to self. Revert at end of sub
@@ -266,10 +281,28 @@ sub addRule {
         $self->$key( $batchjoboverrides{$key} );
     }
 
+    # silently rewrite any prereqs that are actually internal job array targets
+    # as the target of the job array that the prereqs are a part of
+    my $itargs = $self->jaInternalTargets;
+    @{ $self->job->prereqs } =
+      map {
+        if ( exists $itargs->{$_} && !exists $self->targets->{$_} ) {
+            $itargs->{$_};
+        }
+        else { $_; }
+      } @{ $self->job->prereqs };
+
+    # check if target already exists
+    # if so, croak
+    my $target = $self->job->target;
+    croak "Target defined twice [$target]" if exists $self->targets->{$target};
+    $self->targets->{$target} = 1;
+
     # Emit the makefile commands
     print { $self->_makefile } $self->jobAsMake;
 
-    push( @{ $self->targets }, $self->job->target );
+    # also add prerequisites to global hash
+    map { $self->prereqs->{$_} = 1 } @{ $self->job->prereqs };
 
     # undo temporary overrides
     for my $key ( sort keys %origOverrides ) {
@@ -305,7 +338,7 @@ sub execute {
       if defined $self->_currentJA;
 
     print { $self->_makefile } "all: "
-      . join( " ", @{ $self->{'targets'} } ) . "\n\n";
+      . join( " ", sort keys %{ $self->targets } ) . "\n\n";
     print { $self->_makefile } ".DELETE_ON_ERROR:\n\n";
 
     # run all recipes in bash shell instead of sh
@@ -327,8 +360,8 @@ sub execute {
 
     my $numjobs = $makeargs{'numJobs'};
 
-    my $makecmd = "make"
-      . (" -r") # no-one would ever want builtin rules, right?
+    my $makecmd =
+      "make" . (" -r")    # no-one would ever want builtin rules, right?
       . ( $makeargs{dryRun}         ? " -n" : "" )
       . ( $makeargs{keepGoing}      ? " -k" : "" )
       . ( $makeargs{alwaysMake}     ? " -B" : "" )
@@ -401,7 +434,16 @@ Requires 'target' to be specified as key value pairs:
 
 Add in overrides at this point.  They will be applied at endJobArray().
 
+=head3 Alias
+
+sja()
+
 =cut
+
+sub sja {
+    my $self = shift;
+    return $self->startJobArray(@_);
+}
 
 sub startJobArray {
     my ( $self, %overrides ) = @_;
@@ -445,6 +487,10 @@ sub startJobArray {
 
 This structure is designed to work with SGE's job array functionality.  Any rules added to a jobArray structure will be treated as simple add rules when running on localhost, LSF or PBS, but will be executed as a jobArray on SGE.
 
+=head3 Alias
+
+ajar()
+
 =head3 Required Arguments
 
 takes three inputs: target, prereqs, command as key value pairs:
@@ -470,6 +516,11 @@ The target is only for internal updating by the job array.  The target may not b
 none
 
 =cut
+
+sub ajar {
+    my $self = shift;
+    return $self->addJobArrayRule(@_);
+}
 
 sub addJobArrayRule {
     my $self = shift;
@@ -505,6 +556,28 @@ sub addJobArrayRule {
         commands => $jobArgs{command}
     );
 
+    # check to make sure this target has not been used in any
+    # prereqs before
+    map {
+        croak "Job array Target already used as prerequisite before [$_]"
+          if exists $self->prereqs->{$_};
+    } @{ $job->targets };
+
+    # add targets to internal targets hash
+    my $itargs = $self->jaInternalTargets;
+    map { $itargs->{$_} = $self->_currentJA->target } @{ $job->targets };
+
+    # silently rewrite any prereqs that are actually internal job
+    # array targets as the target of the job array that the prereqs
+    # are a part of
+    @{ $job->prereqs } =
+      map {
+        if ( exists $itargs->{$_} && !exists $self->targets->{$_} ) {
+            $itargs->{$_};
+        }
+        else { $_; }
+      } @{ $job->prereqs };
+
     # just use addRule unless we are in an SGE cluster
     unless ( $self->engineName eq 'SGE' ) {
         $self->_currentJA->addJob(
@@ -520,6 +593,10 @@ sub addJobArrayRule {
 
 Adds the rule that kicks off the job array. See Workflow for further description.
 
+=head3 Alias
+
+eja()
+
 =head3 Requried Arguments
 
 none
@@ -529,6 +606,11 @@ none
 The target of the job array
 
 =cut
+
+sub eja {
+    my $self = shift;
+    return $self->endJobArray(@_);
+}
 
 sub endJobArray {
 
