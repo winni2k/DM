@@ -1,8 +1,9 @@
 0.017     2015-02-13 10:09:59+00:00 Europe/London (TRIAL RELEASE)
         Add option to wrap normal addRule commands in commands file
-        Add throwing error on duplicate targets
-        Add replacement of JAtargets by their flag in prereqs
+        Add throwing error on duplicate targets - done
+        Add replacement of JAtargets by their flag in prereqs - done
         Add automagic md5sum based JAtarget creation
+        Removed automagic -Xmx addition to java commands. not the place...
 
 0.016     2015-02-13 10:09:59+00:00 Europe/London (TRIAL RELEASE)
         sge_job_array.pl now returns correct code on error

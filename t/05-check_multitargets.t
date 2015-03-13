@@ -1,5 +1,5 @@
 #!perl
-use Test::More tests => 2;
+use Test::More tests => 1;
 use Test::Files;
 use Test::Exception;
 use File::Path qw(make_path remove_tree);
@@ -23,8 +23,6 @@ throws_ok(
     qr/Target defined twice \[($target1)\]/,
     "double target definition throws ok"
 );
-
-$dm->execute;
 
 #file_ok( $target1, "hello world\n", "Hello world got written" );
 
