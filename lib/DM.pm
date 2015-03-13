@@ -90,17 +90,6 @@ sub addRule {
     }
     $self->job( DM::Job->new(@jobArgs) );
 
-    # silently rewrite any prereqs that are actually internal job array targets
-    # as the target of the job array that the prereqs are a part of
-    my $itargs = $self->jaInternalTargets;
-    @{ $self->job->prereqs } =
-      map {
-        if ( exists $itargs->{$_} && !exists $self->targets->{$_} ) {
-            return $itargs->{$_};
-        }
-        else { return $_ }
-      } @{ $self->job->prereqs };
-
     # Setup the user's commands, taking care of imposing memory limits and
     # adding in cluster prefix commands
     my @cmds = @{ $self->job->commands };
@@ -123,15 +112,25 @@ sub addRule {
         $origOverrides{$key} = $self->$key;
         $self->$key( $batchjoboverrides{$key} );
     }
-
-    # Emit the makefile commands
-    print { $self->_makefile } $self->jobAsMake;
+    # silently rewrite any prereqs that are actually internal job array targets
+    # as the target of the job array that the prereqs are a part of
+    my $itargs = $self->jaInternalTargets;
+    @{ $self->job->prereqs } =
+      map {
+        if ( exists $itargs->{$_} && !exists $self->targets->{$_} ) {
+            return $itargs->{$_};
+        }
+        else { return $_ }
+      } @{ $self->job->prereqs };
 
     # check if target already exists
     # if so, croak
     my $target = $self->job->target;
     croak "Target defined twice [$target]" if exists $self->targets->{$target};
     $self->targets->{$target} = 1;
+
+    # Emit the makefile commands
+    print { $self->_makefile } $self->jobAsMake;
 
     # also add prerequisites to global hash
     map { $self->prereqs->{$_} = 1 } @{ $self->job->prereqs };
