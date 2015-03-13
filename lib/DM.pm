@@ -112,15 +112,16 @@ sub addRule {
         $origOverrides{$key} = $self->$key;
         $self->$key( $batchjoboverrides{$key} );
     }
+
     # silently rewrite any prereqs that are actually internal job array targets
     # as the target of the job array that the prereqs are a part of
     my $itargs = $self->jaInternalTargets;
     @{ $self->job->prereqs } =
       map {
         if ( exists $itargs->{$_} && !exists $self->targets->{$_} ) {
-            return $itargs->{$_};
+            $itargs->{$_};
         }
-        else { return $_ }
+        else { $_; }
       } @{ $self->job->prereqs };
 
     # check if target already exists
@@ -330,9 +331,9 @@ sub addJobArrayRule {
     @{ $job->prereqs } =
       map {
         if ( exists $itargs->{$_} && !exists $self->targets->{$_} ) {
-            return $itargs->{$_};
+            $itargs->{$_};
         }
-        else { return $_ }
+        else { $_; }
       } @{ $job->prereqs };
 
     # just use addRule unless we are in an SGE cluster
