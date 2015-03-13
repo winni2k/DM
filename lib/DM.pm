@@ -8,6 +8,7 @@ use 5.006;
 use File::Temp qw/tempdir tempfile/;
 use File::Basename;
 use Carp;
+use Cwd qw/realpath/;
 use DM::JobArray;
 use DM::Job;
 use DM::Distributer;

@@ -25,6 +25,7 @@ my %WriteMakefileArgs = (
   "NAME" => "DM",
   "PREREQ_PM" => {
     "Carp" => 0,
+    "Cwd" => 0,
     "File::Basename" => 0,
     "File::NFSLock" => 0,
     "File::Temp" => 0,
@@ -58,6 +59,7 @@ my %WriteMakefileArgs = (
 
 my %FallbackPrereqs = (
   "Carp" => 0,
+  "Cwd" => 0,
   "File::Basename" => 0,
   "File::NFSLock" => 0,
   "File::Path" => 0,
