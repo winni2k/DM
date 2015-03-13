@@ -134,7 +134,7 @@ sub execute {
       if defined $self->_currentJA;
 
     print { $self->_makefile } "all: "
-      . join( " ", sort values %{ $self->targets } ) . "\n\n";
+      . join( " ", sort keys %{ $self->targets } ) . "\n\n";
     print { $self->_makefile } ".DELETE_ON_ERROR:\n\n";
 
     # run all recipes in bash shell instead of sh
