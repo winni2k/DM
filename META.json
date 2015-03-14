@@ -43,6 +43,7 @@
             "YAML::Tiny" : "0",
             "namespace::autoclean" : "0",
             "perl" : "5.006",
+            "sigtrap" : "0",
             "strict" : "0",
             "warnings" : "0"
          }
@@ -59,6 +60,6 @@
       }
    },
    "release_status" : "testing",
-   "version" : "0.017"
+   "version" : "0.018"
 }
 

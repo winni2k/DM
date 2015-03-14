@@ -8,6 +8,9 @@
 
 use strict;
 use Getopt::Std;
+use sigtrap 'handler', \&signal_handler, 'normal-signals';
+
+my $target = undef;
 
 my %args;
 getopt( 'c:t:p:o:', \%args );
@@ -37,7 +40,6 @@ open $fhPREREQS, '<', $prereqs_file or die "Couldn't open $prereqs_file: $! ";
 # seek to appropriate position given SGE_TASK_ID
 my $command;
 my $prereqs;
-my $target;
 for ( 1 .. ( $ENV{SGE_TASK_ID} + $offset ) ) {
     $command = <$fhCOMMANDS>;
     $prereqs = <$fhPREREQS>;
@@ -77,6 +79,14 @@ if ($run_command) {
 
 exit(0);
 
+
+
+sub signal_handler {
+    if ( defined $target ) {
+        unlink $target;
+    }
+}
+
 __END__
 
 =pod
@@ -89,7 +99,11 @@ sge_job_array.pl - This script is used by Job Arrays to check prerequisites and 
 
 =head1 VERSION
 
-version 0.017
+version 0.018
+
+=head1 signal_handler()
+
+Unlinks the target on "normal signals", if sge_job_array.pl has had a chance to figure out what it's target is :)
 
 =head1 AUTHOR
 

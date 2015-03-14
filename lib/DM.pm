@@ -1,5 +1,5 @@
 package DM;
-$DM::VERSION = '0.017'; # TRIAL
+$DM::VERSION = '0.018'; # TRIAL
 use Moose;
 use MooseX::StrictConstructor;
 use namespace::autoclean;
@@ -447,7 +447,7 @@ DM - Distributed Make: A perl module for running pipelines
 
 =head1 VERSION
 
-version 0.017
+version 0.018
 
 =head1 SYNOPSIS
 
