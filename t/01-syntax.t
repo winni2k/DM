@@ -4,7 +4,8 @@ use warnings;
 use Test::More tests=>2;
 use FindBin qw/$Bin/;
 
-my $DMWrapCmd = "$Bin/../scripts/DMWrapCmd.pl 2>&1";
+my $DMWrapCmd = "cd $Bin/..; prove -l scripts/DMWrapCmd.pl 2>&1";
+
 my $error = qx/$DMWrapCmd/;
 like($error, qr/^Attribute \(dataFile\) is required at/, "DMWrapCmd.pl syntax OK");
 

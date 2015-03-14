@@ -3,8 +3,6 @@ use strictures;
 use warnings;
 use Test::More tests => 11;
 use File::Temp ();
-use FindBin qw/Bin/;
-use lib "$Bin/../scripts";
 
 BEGIN {
     use_ok('DM::TypeDefs')         || print "Bail out!\n";
@@ -12,7 +10,6 @@ BEGIN {
     use_ok('DM::JobArray')         || print "Bail out!\n";
     use_ok('DM::DistributeEngine') || print "Bail out!\n";
     use_ok('DM')                   || print "Bail out!\n";
-    use_ok('DMWrapper')            || print "Bail out!\n";
 }
 
 # testing DM::Job method loading

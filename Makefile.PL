@@ -48,7 +48,6 @@ my %WriteMakefileArgs = (
     "Test::Exception" => 0,
     "Test::Files" => 0,
     "Test::More" => 0,
-    "lib" => 0,
     "strictures" => 0
   },
   "VERSION" => "0.017",
@@ -78,7 +77,6 @@ my %FallbackPrereqs = (
   "Test::Files" => 0,
   "Test::More" => 0,
   "YAML::Tiny" => 0,
-  "lib" => 0,
   "namespace::autoclean" => 0,
   "strict" => 0,
   "strictures" => 0,
