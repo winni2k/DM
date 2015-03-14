@@ -1,5 +1,5 @@
 
-0.017     2015-03-14 16:02:08+00:00 Europe/London (TRIAL RELEASE)
+0.017     2015-03-14 16:16:20+00:00 Europe/London (TRIAL RELEASE)
         Add option to wrap normal addRule commands in commands file
         Add automagic md5sum based JAtarget creation
         Canonicalize all path names
