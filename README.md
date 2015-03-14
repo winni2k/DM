@@ -38,6 +38,12 @@ For later releases, simply download one of the *-TRIAL releases from
 the releases page on github (for example v0.014-TRIAL), enter that
 directory and follow standard CPAN procedure (see above).
 
+#### Most up-to-date developer builds
+
+The branch `build/devel` contains a snapshot of every build created so far.
+Standard CPAN procedures can be used on these builds as well.  Travis CI 
+testing results for these builds can be found at https://travis-ci.org/wkretzsch/DM.
+
 ## Documentation
 
 Documentation on how to use DM can be found inside the DM library 
