@@ -3,6 +3,7 @@
         Add option to wrap normal addRule commands in commands file
         Add automagic md5sum based JAtarget creation
         Canonicalize all path names
+        Add support for intermediate file marking and automatic cleanup
         
 0.018     Sat Mar 14 17:28:13 GMT 2015
         Make sge_job_array.pl delete targets on "normal_signals" - done need to test
