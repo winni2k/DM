@@ -87,6 +87,9 @@ display the documentation:
 After installation the man page is available through:
 
     man DM
+    
+A copy of the documentation can also be found at https://github.com/wkretzsch/DM/wiki/Documentation
+
 
 ## Changes
 
