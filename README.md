@@ -12,6 +12,38 @@ The maintainer of this code is Warren W. Kretzschmar.
 
 A copy of this code can be found at https://github.com/wkretzsch/DM
 
+## Synopsis
+
+This code will echo 100 numbers in parallel, and then echo another 100 numbers in parallel after a five second sleep.
+
+    #!/usr/bin/env perl -w
+    use strict;
+    use DM;
+    my @args = (dryRun => 0, numJobs=>100, engineName => 'localhost');
+    my $dm = DM->new(@args);    
+    
+    for my $val (1..100){
+        $dm->addRule("hello_world_$val", "", "echo $val; sleep 5; echo ".($val + 100)."; touch hello_world_$val");
+    }
+    $dm->execute();
+    
+To run on an SGE cluster, this code can be rewritten in the following way:
+    
+    #!/usr/bin/env perl -w
+    use strict;
+    use DM;
+    my @args = (dryRun => 0, numJobs=>100, globalTmpDir => .);
+    my $dm = DM->new(@args);
+    
+    $dm->startJobArray(target => 'hw.flag');
+    for my $val (1..100){
+        $dm->addJobArrayRule("hello_world_$val", "", "echo $val; sleep 5; echo ".($val + 100)."; touch hello_world_$val");
+    }
+    $dm->endJobArray();
+    $dm->execute();
+    
+This runs all the jobs as part of a job array.  Running as a job array is only necessary if the recipe to run contains special bash characters that signify the end of an expression (for example: ; | & && ||).
+
 ## Installation
 
 ### Using dzilla
@@ -20,23 +52,23 @@ A copy of this code can be found at https://github.com/wkretzsch/DM
 
 ### Using GNU make
 
-#### For DM version <= 0.2.6
+#### For DM version > 0.2.6
 
-For releases before and including 0.2.6, download a *-CPAN release
-from the releases page on github (for example v0.2.6-CPAN). 
-Enter the subdirectory with the version's name (for example
-DM-0.2.6). Then follow standard CPAN procedures:
+For the later releases, simply download one of the *-TRIAL releases from
+the releases page on github (for example v0.016-TRIAL), enter that
+directory and follow standard CPAN procedure:
 
     perl Makefile.PL
     make
     make test
     make install
 
-#### For DM version > 0.2.6
+#### For DM version <= 0.2.6
 
-For later releases, simply download one of the *-TRIAL releases from
-the releases page on github (for example v0.014-TRIAL), enter that
-directory and follow standard CPAN procedure (see above).
+For releases before and including 0.2.6, download a *-CPAN release
+from the releases page on github (for example v0.2.6-CPAN). 
+Enter the subdirectory with the version's name (for example
+DM-0.2.6). Then follow standard CPAN procedure (see above)
 
 #### Most up-to-date developer builds
 
